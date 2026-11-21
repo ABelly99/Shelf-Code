@@ -19,7 +19,7 @@ var (
 	db     *sql.DB
 )
 
-const schemaVersion = 1
+const schemaVersion = 2
 
 func dbPath() string { return filepath.Join(dataDir, "shelfcode.db") }
 
@@ -191,6 +191,13 @@ func migrate() error {
 			}
 		}
 	}
+	if v < 2 {
+		// 1.0.0 generated counting-up codes (PH-000001). New default: random numbers.
+		// Only replace the old default; a pattern someone chose stays.
+		if _, err := tx.Exec(`DELETE FROM settings WHERE key='code_pattern' AND value='"{PREFIX}{SEQ:6}"'`); err != nil {
+			return err
+		}
+	}
 	if _, err := tx.Exec(`INSERT OR REPLACE INTO settings(key,value) VALUES('schema_version',?)`, fmt.Sprint(schemaVersion)); err != nil {
 		return err
 	}
@@ -212,7 +219,7 @@ var defaultSettings = map[string]any{
 	"theme":               "system",
 	"density":             "compact",
 	"default_format":      "code128",
-	"code_pattern":        "{PREFIX}{SEQ:6}",
+	"code_pattern":        defaultCodePattern,
 	"global_prefix":       "SC-",
 	"global_next_seq":     1,
 	"lookup_ignore_case":  false,

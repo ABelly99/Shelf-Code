@@ -470,7 +470,7 @@ async function editView({ main }, id, query) {
     catch (e) { toast(e.message, { error: true }); e.focus?.(); return; }
     if (genSeq != null && body.code === generated) body.gen_seq = genSeq;
     saving = true;
-    saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+    setSaving(true);
     try {
       let r;
       if (isNew) r = await api.post('/api/items', body);
@@ -495,7 +495,7 @@ async function editView({ main }, id, query) {
         const choice = await dialog({ title: 'Changed somewhere else', body: h('p', null, e.message + ' Overwrite their changes with yours, or reload to see them?'),
           actions: [{ label: 'Reload', value: 'reload' }, { label: 'Overwrite', danger: true, value: 'force' }] });
         if (choice === 'reload') { snapshot = snap(); go(`#/item/${id}/edit?r=${Date.now()}`); }
-        if (choice === 'force') { it.updated_at = ''; saving = false; saveBtn.disabled = false; saveBtn.textContent = 'Save'; return save(andNew); }
+        if (choice === 'force') { it.updated_at = ''; saving = false; setSaving(false); return save(andNew); }
       } else if (e instanceof ApiError && e.data?.conflict) {
         const c = e.data.conflict;
         toast(e.message, { error: true });
@@ -505,12 +505,15 @@ async function editView({ main }, id, query) {
       }
     } finally {
       saving = false;
-      saveBtn.disabled = false; saveBtn.textContent = 'Save';
+      setSaving(false);
     }
   };
 
   const cancel = () => go(isNew ? (it.category_id ? `#/items?cat=${it.category_id}` : '#/items') : `#/item/${id}`);
-  const saveBtn = h('button', { class: 'btn primary', type: 'button', onclick: () => save(false) }, 'Save');
+  const saveLabel = isNew ? 'Create item' : 'Save changes';
+  const saveBtn = h('button', { class: 'btn primary big', type: 'button', onclick: () => save(false) }, saveLabel);
+  const topSaveBtn = h('button', { class: 'btn primary', type: 'button', onclick: () => save(false), title: 'Ctrl+S' }, saveLabel);
+  const setSaving = (on) => { for (const b of [saveBtn, topSaveBtn]) { b.disabled = on; b.textContent = on ? 'Saving…' : saveLabel; } };
   const locList = h('datalist', { id: 'loc-list' });
   api.get('/api/facets', { quiet: true }).then(r => (r.counts.location || []).forEach(l => locList.appendChild(h('option', { value: l.value })))).catch(() => {});
 
@@ -518,6 +521,9 @@ async function editView({ main }, id, query) {
   const form = h('form', { class: 'edit-form', autocomplete: 'off', onsubmit: (e) => { e.preventDefault(); save(false); } },
     h('div', { class: 'page-head' },
       h('div', { class: 'crumbs' }, h('a', { href: '#/items' }, 'Items'), ' › ', isNew ? 'New item' : h('a', { href: `#/item/${id}` }, it.name)),
+      h('span', { class: 'spacer' }),
+      h('button', { class: 'btn ghost', type: 'button', onclick: () => cancel() }, 'Cancel'),
+      topSaveBtn,
       h('h1', { style: { width: '100%', order: 2 } }, isNew ? 'New item' : 'Edit item')),
     h('div', { class: 'item-layout' },
       h('div', null, h('h3', null, 'Photos'), imgs.el, h('p', { class: 'muted small', style: { marginTop: '6px' } }, 'Drag to reorder. The first photo is the main one. You can paste a photo with Ctrl+V.')),
@@ -549,7 +555,7 @@ async function editView({ main }, id, query) {
             fld('notes', 'Private notes', notesInput, { span: true }))))),
     h('div', { class: 'save-bar' },
       saveBtn,
-      h('button', { class: 'btn', type: 'button', onclick: () => save(true), title: 'Ctrl+Shift+S' }, 'Save & new'),
+      h('button', { class: 'btn big', type: 'button', onclick: () => save(true), title: 'Ctrl+Shift+S' }, isNew ? 'Create & add another' : 'Save & new item'),
       h('button', { class: 'btn ghost', type: 'button', onclick: () => cancel() }, 'Cancel'),
       h('span', { class: 'muted small', style: { marginLeft: 'auto' } }, 'Ctrl+S to save · Esc to cancel')));
   main.appendChild(form);

@@ -681,7 +681,10 @@ func handleCodeCheck(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"free": true})
 }
 
-var tokenRe = regexp.MustCompile(`\{(PREFIX|SEQ|YYYY|YY|MM|DD|RAND|CHECK)(?::(\d+))?\}`)
+var tokenRe = regexp.MustCompile(`\{(PREFIX|SEQ|YYYY|YY|MM|DD|RANDNUM|RAND|CHECK)(?::(\d+))?\}`)
+
+// defaultCodePattern: a random 10-digit number, e.g. 4829107365.
+const defaultCodePattern = "{RANDNUM:10}"
 
 const randChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
@@ -705,6 +708,11 @@ func renderPattern(pattern, prefix string, seq int64, t time.Time) string {
 			return t.Format("01")
 		case "DD":
 			return t.Format("02")
+		case "RANDNUM":
+			if n == 0 {
+				n = 10
+			}
+			return randomDigits(n)
 		case "RAND":
 			if n == 0 {
 				n = 4
@@ -721,6 +729,19 @@ func renderPattern(pattern, prefix string, seq int64, t time.Time) string {
 		out = strings.Replace(out, "{CHECK}", strconv.Itoa(mod10Check(out)), 1)
 	}
 	return out
+}
+
+// randomDigits returns n random digits; the first is never 0 (so spreadsheets don't drop it).
+func randomDigits(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		if i == 0 {
+			b[i] = byte('1' + rand.IntN(9))
+		} else {
+			b[i] = byte('0' + rand.IntN(10))
+		}
+	}
+	return string(b)
 }
 
 // mod10Check: GS1-style check digit over the digits present in s.
@@ -760,17 +781,30 @@ func codeFormatFor(tx *sql.Tx, catID int64) string {
 	return settingString("default_format")
 }
 
-// numericCode builds a valid in-store number: EAN-13 starting with 2 (GS1 range 200-299 is reserved for
-// in-store use), UPC-A starting with 4 (in-store), EAN-8 starting with 2.
-func numericCode(format string, seq int64) string {
+// numericCode builds a valid in-store number with a correct check digit: EAN-13 starting with 2
+// (GS1 range 20-29 is reserved for in-store use), UPC-A starting with 4 (in-store), EAN-8 starting with 2.
+// With random=true the rest of the digits are random, otherwise they count up from seq.
+func numericCode(format string, seq int64, random bool) string {
 	var body string
 	switch format {
 	case "ean13":
-		body = fmt.Sprintf("200%09d", seq)
+		if random {
+			body = "2" + randomDigits(11)
+		} else {
+			body = fmt.Sprintf("200%09d", seq)
+		}
 	case "upca":
-		body = fmt.Sprintf("4%010d", seq)
+		if random {
+			body = "4" + randomDigits(10)
+		} else {
+			body = fmt.Sprintf("4%010d", seq)
+		}
 	case "ean8":
-		body = fmt.Sprintf("2%06d", seq)
+		if random {
+			body = "2" + randomDigits(6)
+		} else {
+			body = fmt.Sprintf("2%06d", seq)
+		}
 	}
 	return body + strconv.Itoa(mod10Check(body))
 }
@@ -1201,8 +1235,9 @@ func handleVariants(w http.ResponseWriter, r *http.Request) {
 func nextCodeTx(tx *sql.Tx, catID int64) (string, int64, string, error) {
 	pattern := settingString("code_pattern")
 	if pattern == "" {
-		pattern = "{PREFIX}{SEQ:6}"
+		pattern = defaultCodePattern
 	}
+	random := strings.Contains(pattern, "{RAND")
 	prefix := settingString("global_prefix")
 	seq := settingInt("global_next_seq")
 	var gs string
@@ -1223,7 +1258,7 @@ func nextCodeTx(tx *sql.Tx, catID int64) (string, int64, string, error) {
 	for tries := 0; tries < 100000; tries++ {
 		var code string
 		if format == "ean13" || format == "upca" || format == "ean8" {
-			code = numericCode(format, seq)
+			code = numericCode(format, seq, random)
 		} else {
 			code = renderPattern(pattern, prefix, seq, time.Now())
 		}

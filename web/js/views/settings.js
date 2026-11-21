@@ -91,17 +91,32 @@ export default async function ({ main, parts }) {
   }
 
   if (tab === 'codes') {
+    const PRESETS = [
+      ['{RANDNUM:10}', 'Random number', '4829107365'],
+      ['{RANDNUM:8}', 'Random number (shorter)', '48291073'],
+      ['{RANDNUM:12}', 'Random number (longer)', '482910736519'],
+      ['{PREFIX}{RANDNUM:8}', 'Category prefix + random number', 'PH-48291073'],
+      ['{PREFIX}{SEQ:6}', 'Category prefix + counting up', 'PH-000001, PH-000002…'],
+    ];
+    const cur = s.code_pattern || '{RANDNUM:10}';
+    const isPreset = PRESETS.some(([v]) => v === cur);
+    const custom = h('input', { type: 'text', class: 'code-input', value: cur, style: { width: '100%' }, onchange: () => save({ code_pattern: custom.value.trim() || '{RANDNUM:10}' }) });
+    const customBox = h('div', { class: 'field', hidden: isPreset }, h('label', null, 'Custom pattern'), custom,
+      h('div', { class: 'help' }, '{RANDNUM:10} random digits · {RAND:4} random letters+digits · {PREFIX} category prefix · {SEQ:6} counting up · {YYYY} {YY} {MM} {DD} date · {CHECK} check digit'));
+    const style = h('select', { onchange: () => {
+      customBox.hidden = style.value !== 'custom';
+      if (style.value !== 'custom') { custom.value = style.value; save({ code_pattern: style.value }, 'New codes will look like this from now on'); }
+    } }, PRESETS.map(([v, l, ex]) => h('option', { value: v, selected: v === cur }, `${l} — ${ex}`)), h('option', { value: 'custom', selected: !isPreset }, 'Custom pattern…'));
     const prefix = text('global_prefix', { class: 'code-input', style: { width: '120px' } });
-    const pattern = text('code_pattern', { class: 'code-input' });
     body.append(
       section('New codes',
+        h('p', { class: 'muted' }, 'When you add an item, SHELFCODE makes its code for you (you can always type or scan your own instead). Existing items keep their codes.'),
+        field('Generated codes look like', style),
+        customBox,
         h('div', { class: 'grid2' },
           field('Default barcode format', select('default_format', Object.entries(FORMATS).map(([k, f]) => [k, f.label])), 'Categories can choose their own.'),
-          field('Next number (when the category has no prefix)', numb('global_next_seq', { min: 1 }))),
-        h('div', { class: 'grid2' },
-          field('Code pattern', pattern, h('span', null, '{PREFIX} {SEQ:6} {YYYY} {YY} {MM} {RAND:4} {CHECK}')),
-          field('Prefix (when the category has none)', prefix)),
-        h('p', { class: 'muted small' }, 'With EAN-13, UPC-A or EAN-8 as the format, generated codes are valid in-store numbers (EAN-13 starting 200…, UPC-A starting 4…) with a correct check digit, so any retail scanner reads them.')),
+          field('Prefix (when the category has none)', prefix, 'Only used by patterns with a prefix.')),
+        h('p', { class: 'muted small' }, 'With EAN-13, UPC-A or EAN-8 as the format, generated codes are valid in-store numbers (EAN-13 starting with 2, UPC-A starting with 4) with a correct check digit, so any retail scanner reads them. Codes are always checked so two items never share one.')),
       section('Code lookup (the box at the top)',
         h('p', { class: 'muted' }, 'A code opens its item only when it matches exactly. When nothing matches, nothing happens.'),
         bool('lookup_ignore_case', 'Ignore upper/lower case (abc = ABC)'),
