@@ -144,7 +144,7 @@ All release files (Windows `.exe` with version info, Linux tarballs, `.deb`/`.rp
 ./scripts/release.sh 1.0.0
 ```
 
-Pushing a tag like `v1.0.0` makes GitHub Actions build all of these, publish the release, and push the Docker image to `ghcr.io/abelly99/shelf-code`.
+Publishing a release on GitHub with a tag like `v1.0.0` makes GitHub Actions build all of these, attach them to the release, and push the Docker image to `ghcr.io/abelly99/shelf-code`.
 
 SHELFCODE is made for Windows, and the same code also runs on macOS and Linux. On Linux and macOS it runs as a server (no console window) when started without a terminal, or with `--headless`.
 

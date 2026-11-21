@@ -1,12 +1,18 @@
-# Make a release (github.com → Releases → Draft a new release → new tag v1.2.0 → Publish),
-# or push a tag like v1.2.0. This workflow then builds and attaches:
-#   - GitHub release with Windows .exe, Linux tarballs, .deb/.rpm, installer, ZimaOS files
+# Make a release on github.com (Releases → Draft a new release → tag v1.2.0 → Publish).
+# This workflow then builds and attaches:
+#   - Windows .exe, Linux tarballs, .deb/.rpm, installer, ZimaOS files, checksums
 #   - multi-arch Docker image ghcr.io/abelly99/shelf-code (amd64, arm64, armv7)
+# To rebuild an existing release: Actions → Release → Run workflow → enter its tag.
 name: Release
 
 on:
-  push:
-    tags: ["v*"]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build, e.g. v1.0.0"
+        required: true
 
 permissions:
   contents: write
@@ -14,41 +20,59 @@ permissions:
 
 env:
   GOTOOLCHAIN: auto
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 jobs:
   files:
     name: Build release files
     runs-on: ubuntu-latest
     steps:
+      - name: Check the tag is a version number
+        run: |
+          if ! [[ "$TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::The release tag must be a version like v1.0.0 (this one is '$TAG'). Delete this release and its tag, then make a new release with a tag like v1.0.0."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
 
       - name: Build
-        run: ./scripts/release.sh "${GITHUB_REF_NAME#v}"
+        run: ./scripts/release.sh "${TAG#v}"
 
-      - name: Publish GitHub release
+      - name: Publish files to the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            # Release made by hand on github.com: attach the files, and add the
-            # download notes if it has no description yet.
-            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
-            if [ -z "$(gh release view "$GITHUB_REF_NAME" --json body --jq .body)" ]; then
-              gh release edit "$GITHUB_REF_NAME" --title "SHELFCODE ${GITHUB_REF_NAME}" --notes-file build/release-notes.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+            # Made by hand on github.com: add the download notes if it has no description.
+            if [ -z "$(gh release view "$TAG" --json body --jq .body)" ]; then
+              gh release edit "$TAG" --title "SHELFCODE $TAG" --notes-file build/release-notes.md
             fi
           else
-            gh release create "$GITHUB_REF_NAME" dist/* --title "SHELFCODE ${GITHUB_REF_NAME}" --notes-file build/release-notes.md
+            gh release create "$TAG" dist/* --title "SHELFCODE $TAG" --notes-file build/release-notes.md
           fi
 
   docker:
     name: Docker image
     runs-on: ubuntu-latest
     steps:
+      - name: Check the tag is a version number
+        run: |
+          if ! [[ "$TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::The release tag must be a version like v1.0.0 (this one is '$TAG')."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
       - uses: docker/setup-buildx-action@v3
 
@@ -63,9 +87,9 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=semver,pattern={{version}},value=${{ env.TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
+            type=semver,pattern={{major}},value=${{ env.TAG }}
             type=raw,value=latest
 
       - uses: docker/build-push-action@v6
