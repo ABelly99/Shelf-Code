@@ -1,0 +1,29 @@
+{
+  "name": "Phones",
+  "description": "Brand, OS, RAM, storage, colour, IMEI (scannable), condition, battery, age.",
+  "color": "#2E7D4F",
+  "code_prefix": "PH-",
+  "unique_items": true,
+  "hidden_builtins": ["quantity", "low_stock_at"],
+  "label_template": "Phone sticker 50×25",
+  "fields": [
+    {"key": "brand", "label": "Brand", "type": "select", "options": {"choices": ["Apple", "Google", "Samsung", "OnePlus", "Motorola", "Xiaomi", "Nokia", "Sony", "Huawei", "Oppo", "Nothing", "Other"], "allow_new": true}, "required": true, "show_in_list": true, "group": "Specs"},
+    {"key": "model", "label": "Model", "type": "text", "show_in_list": true, "show_on_label": true, "group": "Specs", "help": "e.g. iPhone 13 Pro, Pixel 8, Galaxy S23"},
+    {"key": "os", "label": "OS", "type": "select", "options": {"choices": ["iOS", "Android", "Custom ROM", "Other"], "allow_new": true}, "show_in_list": true, "group": "Specs"},
+    {"key": "os_version", "label": "OS version", "type": "text", "group": "Specs", "help": "e.g. 17.4, Android 14, GrapheneOS, LineageOS 21"},
+    {"key": "ram_gb", "label": "RAM", "type": "number", "options": {"unit": "GB"}, "show_in_list": true, "group": "Specs"},
+    {"key": "storage", "label": "Storage", "type": "size", "options": {"choices": ["8 GB", "16 GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"], "allow_new": true}, "show_in_list": true, "show_on_label": true, "group": "Specs"},
+    {"key": "color", "label": "Colour", "type": "color", "options": {"choices": ["Black", "White", "Silver", "Gold", "Graphite", "Blue", "Green", "Red", "Purple", "Pink", "Midnight", "Starlight"], "allow_new": true}, "group": "Specs"},
+    {"key": "imei", "label": "IMEI", "type": "identifier", "unique": true, "as_code": true, "group": "Identity", "help": "Scanning this IMEI opens the phone."},
+    {"key": "imei2", "label": "IMEI 2", "type": "identifier", "unique": true, "as_code": true, "group": "Identity"},
+    {"key": "serial", "label": "Serial number", "type": "identifier", "unique": true, "as_code": true, "group": "Identity"},
+    {"key": "release_date", "label": "Release / purchase date", "type": "date", "group": "Condition"},
+    {"key": "age", "label": "Age", "type": "age", "options": {"from": "release_date"}, "show_in_list": true, "group": "Condition"},
+    {"key": "grade", "label": "Condition", "type": "select", "options": {"choices": ["New", "A (like new)", "B (light wear)", "C (visible wear)", "D (damaged)", "For parts"]}, "show_in_list": true, "show_on_label": true, "group": "Condition"},
+    {"key": "battery", "label": "Battery health", "type": "number", "options": {"unit": "%", "min": 0, "max": 100}, "group": "Condition"},
+    {"key": "carrier", "label": "Carrier lock", "type": "select", "options": {"choices": ["Unlocked", "Locked"]}, "group": "Condition"},
+    {"key": "defects", "label": "Defects", "type": "long_text", "group": "Condition"},
+    {"key": "accessories", "label": "Included", "type": "multi_select", "options": {"choices": ["Box", "Charger", "Cable", "Case", "Earphones", "SIM tool"]}, "group": "Sale"},
+    {"key": "warranty_until", "label": "Warranty until", "type": "date", "group": "Sale"}
+  ]
+}

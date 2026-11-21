@@ -1,0 +1,18 @@
+{
+  "name": "Shoes",
+  "description": "Brand, size system, size, width, colour. Size × colour variants.",
+  "color": "#B26B00",
+  "code_prefix": "SH-",
+  "label_template": "Medium 50×30",
+  "variant_fields": ["size", "color"],
+  "fields": [
+    {"key": "brand", "label": "Brand", "type": "select", "options": {"choices": [], "allow_new": true}, "show_in_list": true, "group": "Details"},
+    {"key": "size_system", "label": "Size system", "type": "select", "options": {"choices": ["US", "EU", "UK"]}, "group": "Details"},
+    {"key": "size", "label": "Size", "type": "size", "options": {"choices": ["4", "4.5", "5", "5.5", "6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12", "13", "14", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47"], "allow_new": true}, "show_in_list": true, "show_on_label": true, "group": "Details"},
+    {"key": "width", "label": "Width", "type": "select", "options": {"choices": ["Narrow", "Regular", "Wide", "Extra wide"]}, "group": "Details"},
+    {"key": "color", "label": "Colour", "type": "color", "options": {"choices": ["Black", "White", "Brown", "Grey", "Navy", "Red", "Beige", "Multi"], "allow_new": true}, "show_in_list": true, "group": "Details"},
+    {"key": "material", "label": "Material", "type": "select", "options": {"choices": ["Leather", "Suede", "Canvas", "Synthetic", "Mesh", "Rubber"], "allow_new": true}, "group": "Details"},
+    {"key": "gender", "label": "Fit", "type": "select", "options": {"choices": ["Women", "Men", "Unisex", "Kids"]}, "group": "Details"},
+    {"key": "condition", "label": "Condition", "type": "select", "options": {"choices": ["New in box", "New", "Like new", "Good", "Fair"]}, "group": "Condition"}
+  ]
+}

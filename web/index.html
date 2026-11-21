@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHELFCODE</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%231C1C1A'/%3E%3Cpath d='M3 3h1v10H3zM5 3h2v10H5zM8 3h1v10H8zM10 3h1v10h-1zM12 3h1v10h-1z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/css/app.css">
+<script src="/vendor/bwip-js-min.js"></script>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <a class="logo" href="#/home" title="Home">SHELFCODE</a>
+    <form class="lookup" id="lookup-form" autocomplete="off">
+      <span class="scan-dot" id="scan-dot" title="Phone scanner: off"></span>
+      <input id="lookup" type="text" spellcheck="false" placeholder="Scan or type a code…  ( / )" aria-label="Code lookup">
+    </form>
+    <div class="topbar-actions">
+      <a class="btn primary" href="#/new" id="new-btn" title="New item (N)">+ New item</a>
+      <button class="btn icon menu-btn" id="menu-btn" aria-label="Menu">☰</button>
+    </div>
+  </header>
+  <nav class="sidebar" id="sidebar">
+    <a href="#/home" data-nav="home">Home</a>
+    <a href="#/items" data-nav="items">Items</a>
+    <a href="#/print" data-nav="print">Print labels</a>
+    <a href="#/stock" data-nav="stock">Stock</a>
+    <a href="#/categories" data-nav="categories">Categories &amp; fields</a>
+    <a href="#/reports" data-nav="reports">Reports</a>
+    <a href="#/import" data-nav="import">Import / Export</a>
+    <a href="#/trash" data-nav="trash">Trash <span class="count" id="trash-count"></span></a>
+    <a href="#/settings" data-nav="settings">Settings</a>
+    <div class="side-head">Saved views</div>
+    <div id="saved-views"></div>
+    <div class="side-foot">
+      <a href="#/items?low=1" class="low-link" id="low-link" hidden>Low stock <span class="count warn" id="low-count"></span></a>
+      <button class="linkish" id="shortcuts-btn">Keyboard shortcuts ( ? )</button>
+    </div>
+  </nav>
+  <main id="main" tabindex="-1"></main>
+</div>
+<div id="banner" class="banner" hidden></div>
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<div id="print-root"></div>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>

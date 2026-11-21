@@ -1,0 +1,17 @@
+{
+  "name": "Electronics",
+  "description": "Brand, model, type, serial (scannable), condition, warranty.",
+  "color": "#6B4FBF",
+  "code_prefix": "EL-",
+  "label_template": "Medium 50×30",
+  "fields": [
+    {"key": "brand", "label": "Brand", "type": "select", "options": {"choices": [], "allow_new": true}, "show_in_list": true, "group": "Details"},
+    {"key": "model", "label": "Model", "type": "text", "show_in_list": true, "group": "Details"},
+    {"key": "type", "label": "Type", "type": "select", "options": {"choices": ["Laptop", "Tablet", "Desktop", "Monitor", "Console", "Headphones", "Speaker", "Camera", "Smartwatch", "TV", "Charger", "Cable", "Other"], "allow_new": true}, "show_in_list": true, "group": "Details"},
+    {"key": "serial", "label": "Serial number", "type": "identifier", "unique": true, "as_code": true, "group": "Identity"},
+    {"key": "condition", "label": "Condition", "type": "select", "options": {"choices": ["New", "Open box", "Like new", "Good", "Fair", "For parts"]}, "show_in_list": true, "group": "Condition"},
+    {"key": "power", "label": "Power", "type": "text", "group": "Details", "help": "e.g. 65 W, 19 V"},
+    {"key": "accessories", "label": "Included", "type": "multi_select", "options": {"choices": ["Box", "Charger", "Cable", "Remote", "Manual"], "allow_new": true}, "group": "Condition"},
+    {"key": "warranty_until", "label": "Warranty until", "type": "date", "group": "Sale"}
+  ]
+}

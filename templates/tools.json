@@ -1,0 +1,15 @@
+{
+  "name": "Tools & Parts",
+  "description": "Brand, part number (scannable), type, spec, compatibility.",
+  "color": "#555555",
+  "code_prefix": "TL-",
+  "label_template": "Small 38×25",
+  "fields": [
+    {"key": "brand", "label": "Brand", "type": "select", "options": {"choices": [], "allow_new": true}, "show_in_list": true, "group": "Details"},
+    {"key": "part_number", "label": "Part number", "type": "identifier", "unique": true, "as_code": true, "show_in_list": true, "group": "Details"},
+    {"key": "type", "label": "Type", "type": "select", "options": {"choices": [], "allow_new": true}, "show_in_list": true, "group": "Details"},
+    {"key": "spec", "label": "Size / spec", "type": "text", "group": "Details"},
+    {"key": "compatible", "label": "Compatible with", "type": "long_text", "group": "Details"},
+    {"key": "condition", "label": "Condition", "type": "select", "options": {"choices": ["New", "Used", "Refurbished", "For parts"]}, "group": "Condition"}
+  ]
+}

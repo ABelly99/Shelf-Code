@@ -1,0 +1,7 @@
+# Data created when the app runs (database, photos, backups)
+SHELFCODE-data/
+
+# Built programs
+*.exe
+/shelfcode
+/SHELFCODE

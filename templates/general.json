@@ -1,0 +1,8 @@
+{
+  "name": "General",
+  "description": "No extra fields — just name, code, price, quantity, photos, description. A blank start for anything.",
+  "color": "#6B6A65",
+  "code_prefix": "GEN-",
+  "label_template": "Medium 50×30",
+  "fields": []
+}

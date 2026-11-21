@@ -1,0 +1,17 @@
+{
+  "name": "Books",
+  "description": "Author, ISBN (scannable), publisher, year, genre, format, condition.",
+  "color": "#8A5A2B",
+  "code_prefix": "BK-",
+  "label_template": "Small 38×25",
+  "fields": [
+    {"key": "author", "label": "Author", "type": "text", "show_in_list": true, "group": "Details"},
+    {"key": "isbn", "label": "ISBN", "type": "identifier", "unique": true, "as_code": true, "group": "Details", "help": "Scanning the book's own barcode (ISBN) opens it."},
+    {"key": "publisher", "label": "Publisher", "type": "text", "group": "Details"},
+    {"key": "year", "label": "Year", "type": "number", "group": "Details"},
+    {"key": "genre", "label": "Genre", "type": "select", "options": {"choices": ["Fiction", "Non-fiction", "Children", "Comics", "Cooking", "History", "Science", "Biography", "Reference", "Other"], "allow_new": true}, "show_in_list": true, "group": "Details"},
+    {"key": "format", "label": "Format", "type": "select", "options": {"choices": ["Hardcover", "Paperback", "Mass market", "Other"]}, "group": "Details"},
+    {"key": "language", "label": "Language", "type": "text", "group": "Details"},
+    {"key": "condition", "label": "Condition", "type": "select", "options": {"choices": ["New", "Like new", "Very good", "Good", "Acceptable"]}, "show_in_list": true, "group": "Condition"}
+  ]
+}

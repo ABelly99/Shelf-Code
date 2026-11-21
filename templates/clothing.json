@@ -1,0 +1,19 @@
+{
+  "name": "Clothing",
+  "description": "Size, colour, material, brand, season. Make size × colour variants in one step.",
+  "color": "#1F5FBF",
+  "code_prefix": "CLO-",
+  "label_template": "Hang tag 70×40",
+  "variant_fields": ["size", "color"],
+  "fields": [
+    {"key": "brand", "label": "Brand", "type": "select", "options": {"choices": [], "allow_new": true}, "show_in_list": true, "group": "Details"},
+    {"key": "style", "label": "Type", "type": "select", "options": {"choices": ["Shirt", "T-shirt", "Blouse", "Sweater", "Hoodie", "Jacket", "Coat", "Pants", "Jeans", "Shorts", "Skirt", "Dress", "Suit", "Underwear", "Socks", "Shoes", "Hat", "Accessory"], "allow_new": true}, "show_in_list": true, "group": "Details"},
+    {"key": "size", "label": "Size", "type": "size", "options": {"choices": ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "0", "2", "4", "6", "8", "10", "12", "14", "16", "18", "20", "28", "29", "30", "31", "32", "33", "34", "36", "38", "40", "42", "44", "One size"], "allow_new": true}, "show_in_list": true, "show_on_label": true, "group": "Details"},
+    {"key": "color", "label": "Colour", "type": "color", "options": {"choices": ["Black", "White", "Grey", "Navy", "Blue", "Red", "Green", "Beige", "Brown", "Pink", "Yellow", "Orange", "Purple", "Multi"], "allow_new": true}, "show_in_list": true, "show_on_label": true, "group": "Details"},
+    {"key": "gender", "label": "Fit", "type": "select", "options": {"choices": ["Women", "Men", "Unisex", "Girls", "Boys", "Baby"]}, "group": "Details"},
+    {"key": "material", "label": "Material", "type": "multi_select", "options": {"choices": ["Cotton", "Polyester", "Wool", "Linen", "Denim", "Leather", "Silk", "Viscose", "Nylon", "Elastane", "Cashmere", "Blend"], "allow_new": true}, "group": "Details"},
+    {"key": "season", "label": "Season", "type": "select", "options": {"choices": ["Spring/Summer", "Fall/Winter", "All-season"]}, "group": "Details"},
+    {"key": "condition", "label": "Condition", "type": "select", "options": {"choices": ["New with tags", "New", "Like new", "Good", "Fair"]}, "group": "Condition"},
+    {"key": "care", "label": "Care instructions", "type": "long_text", "group": "Condition"}
+  ]
+}

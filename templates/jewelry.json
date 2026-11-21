@@ -1,0 +1,17 @@
+{
+  "name": "Jewelry",
+  "description": "Type, metal, purity, weight, stone. Tiny Data Matrix labels.",
+  "color": "#B3261E",
+  "code_prefix": "JW-",
+  "default_format": "datamatrix",
+  "label_template": "Tiny 25×15 (code only)",
+  "fields": [
+    {"key": "type", "label": "Type", "type": "select", "options": {"choices": ["Ring", "Necklace", "Bracelet", "Earrings", "Pendant", "Watch", "Brooch", "Other"], "allow_new": true}, "show_in_list": true, "group": "Details"},
+    {"key": "metal", "label": "Metal", "type": "select", "options": {"choices": ["Gold", "White gold", "Rose gold", "Silver", "Platinum", "Stainless steel", "Other"], "allow_new": true}, "show_in_list": true, "group": "Details"},
+    {"key": "purity", "label": "Purity", "type": "select", "options": {"choices": ["10K", "14K", "18K", "22K", "24K", "925", "950"], "allow_new": true}, "group": "Details"},
+    {"key": "weight_g", "label": "Weight", "type": "number", "options": {"unit": "g", "decimals": 2}, "show_in_list": true, "group": "Details"},
+    {"key": "stone", "label": "Stone", "type": "text", "group": "Details"},
+    {"key": "size", "label": "Size", "type": "text", "group": "Details"},
+    {"key": "condition", "label": "Condition", "type": "select", "options": {"choices": ["New", "Like new", "Good", "Fair"]}, "group": "Condition"}
+  ]
+}
