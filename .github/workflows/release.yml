@@ -1,4 +1,5 @@
-# Push a tag like v1.2.0 to build and publish a release:
+# Make a release (github.com → Releases → Draft a new release → new tag v1.2.0 → Publish),
+# or push a tag like v1.2.0. This workflow then builds and attaches:
 #   - GitHub release with Windows .exe, Linux tarballs, .deb/.rpm, installer, ZimaOS files
 #   - multi-arch Docker image ghcr.io/abelly99/shelf-code (amd64, arm64, armv7)
 name: Release
@@ -33,7 +34,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            # Release made by hand on github.com: attach the files, and add the
+            # download notes if it has no description yet.
             gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+            if [ -z "$(gh release view "$GITHUB_REF_NAME" --json body --jq .body)" ]; then
+              gh release edit "$GITHUB_REF_NAME" --title "SHELFCODE ${GITHUB_REF_NAME}" --notes-file build/release-notes.md
+            fi
           else
             gh release create "$GITHUB_REF_NAME" dist/* --title "SHELFCODE ${GITHUB_REF_NAME}" --notes-file build/release-notes.md
           fi
