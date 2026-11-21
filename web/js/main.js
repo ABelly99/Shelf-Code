@@ -241,6 +241,12 @@ function showShortcuts() {
   });
 }
 $('#shortcuts-btn').addEventListener('click', showShortcuts);
+document.addEventListener('shelfcode-navigate', (e) => {
+  const hash = e.detail?.hash;
+  if (!hash || !hash.startsWith('#/')) return;
+  go(hash);
+  toast('Opened by your AI assistant');
+});
 $('#menu-btn').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
 $('#new-btn').addEventListener('click', (e) => {
   if (current?.newQuery) { e.preventDefault(); go('#/new' + current.newQuery); }

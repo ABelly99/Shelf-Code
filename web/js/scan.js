@@ -78,6 +78,8 @@ export function startEvents() {
     deliver(d.code, d.source || 'phone');
   });
   es.addEventListener('scanner', (ev) => statusHandler?.(JSON.parse(ev.data)));
+  // An AI agent (MCP) asked to show something: the page follows along.
+  es.addEventListener('navigate', (ev) => document.dispatchEvent(new CustomEvent('shelfcode-navigate', { detail: JSON.parse(ev.data) })));
   es.onerror = () => {
     if (es.readyState === EventSource.CLOSED) {
       setTimeout(startEvents, retry);

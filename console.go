@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -29,11 +30,14 @@ var outMu sync.Mutex
 // Log lines go through a buffered channel so a slow or paused console never blocks a request.
 var logCh = make(chan string, 256)
 
+// logOut is stdout normally; stderr in "shelfcode mcp" mode, where stdout carries the protocol.
+var logOut io.Writer = os.Stdout
+
 func init() {
 	go func() {
 		for line := range logCh {
 			outMu.Lock()
-			fmt.Print(line)
+			fmt.Fprint(logOut, line)
 			outMu.Unlock()
 		}
 	}()
@@ -131,6 +135,7 @@ func consoleLoop() {
 				"  "+cBold+"scan <code>"+cReset+"              send a test scan to the open page",
 				"  "+cBold+"backup"+cReset+"                   make a backup now",
 				"  "+cBold+"shortcut"+cReset+"                 put a SHELFCODE shortcut on the desktop",
+				"  "+cBold+"agents"+cReset+"                   connect every AI assistant on this PC (Claude, Cursor, VS Code…)",
 				"  "+cBold+"clear"+cReset+"                    clear this window",
 				"  "+cBold+"quit"+cReset+"                     stop SHELFCODE (closing the window does the same)",
 				"",
@@ -215,6 +220,15 @@ func consoleLoop() {
 			} else {
 				say("  Backup saved: " + name)
 			}
+		case "agents", "agent", "ai":
+			lines := []string{"", "  Connecting SHELFCODE to the AI assistants on this PC…"}
+			dbLock.RLock()
+			for _, l := range connectAllAgents() {
+				lines = append(lines, "  "+l)
+			}
+			dbLock.RUnlock()
+			lines = append(lines, "  Then just ask, e.g. “add 12 black tees in S–XL at $19.99 and print their tags”.", "")
+			say(lines...)
 		case "shortcut":
 			if name, err := createDesktopShortcut(); err != nil {
 				say("  " + cRed + "Could not create the shortcut: " + err.Error() + cReset)

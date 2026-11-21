@@ -54,6 +54,8 @@ func main() {
 			os.Exit(healthcheck())
 		case "self-update":
 			os.Exit(selfUpdateCommand())
+		case "mcp":
+			os.Exit(mcpCommand(os.Args[2:]))
 		}
 	}
 	defPort, _ := strconv.Atoi(envOr("SHELFCODE_PORT", "8765"))
@@ -64,7 +66,7 @@ func main() {
 	noBrowser := flag.Bool("no-browser", false, "don't open the browser on start")
 	localOnly := flag.Bool("local-only", false, "only allow this PC (ignore other devices on the network)")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "SHELFCODE %s — barcode inventory database\n\nUsage:\n  shelfcode [options]\n  shelfcode version\n  shelfcode healthcheck\n\nOptions:\n", appVersion)
+		fmt.Fprintf(os.Stderr, "SHELFCODE %s — barcode inventory database\n\nUsage:\n  shelfcode [options]\n  shelfcode version\n  shelfcode healthcheck\n  shelfcode mcp            (MCP server for AI agents, stdio)\n\nOptions:\n", appVersion)
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -120,6 +122,7 @@ func main() {
 	if err := openDB(); err != nil {
 		fatal("Can't open the database: " + err.Error())
 	}
+	agentToken() // make sure AI agents have a token to connect with
 	if pin := os.Getenv("SHELFCODE_PIN"); pin != "" {
 		setSetting(db, "lan_pin", strings.TrimSpace(pin))
 	}

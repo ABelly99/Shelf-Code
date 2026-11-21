@@ -4,7 +4,7 @@ import { FORMATS } from '../barcode.js';
 import { PAPERS, SHEETS, calibrationFor } from '../labelkit.js';
 import { refreshMeta, go } from '../main.js';
 
-const TABS = [['general', 'General'], ['scanner', 'Scanner'], ['codes', 'Codes & lookup'], ['printing', 'Printing'], ['items', 'Items & statuses'], ['network', 'Network'], ['backup', 'Backup'], ['about', 'About']];
+const TABS = [['general', 'General'], ['agents', 'AI agents'], ['scanner', 'Scanner'], ['codes', 'Codes & lookup'], ['printing', 'Printing'], ['items', 'Items & statuses'], ['network', 'Network'], ['backup', 'Backup'], ['about', 'About']];
 
 export default async function ({ main, parts }) {
   const tab = parts[1] || 'general';
@@ -38,6 +38,82 @@ export default async function ({ main, parts }) {
         field('Theme', (() => { const el = select('theme', [['system', 'Same as Windows'], ['light', 'Light'], ['dark', 'Dark']]); el.addEventListener('change', () => setTimeout(() => refreshMeta(['settings']), 100)); return el; })()),
         field('List density', (() => { const el = select('density', [['compact', 'Compact'], ['comfortable', 'Comfortable (bigger photos)']]); el.addEventListener('change', () => setTimeout(() => refreshMeta(['settings']), 100)); return el; })())),
       h('p', { class: 'muted small' }, 'Example price: ', money(123456))));
+  }
+
+  if (tab === 'agents') {
+    const info = await api.get('/api/agents');
+    const copyBtn = (text, label = 'Copy') => h('button', { class: 'btn small', onclick: async () => {
+      try { await navigator.clipboard.writeText(text); toast('Copied'); } catch { toast('Select the text and copy it with Ctrl+C', { error: true }); }
+    } }, label);
+    const codeLine = (text) => h('div', { class: 'row nowrap', style: { gap: '6px' } },
+      h('code', { style: { flex: 1, minWidth: 0, overflowX: 'auto', whiteSpace: 'nowrap', padding: '6px 8px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '12px' } }, text), copyBtn(text));
+
+    body.append(section('Run SHELFCODE from your AI assistant',
+      h('p', null, 'Connect an AI assistant and just ask. No buttons or forms needed. For example:'),
+      h('ul', { class: 'small', style: { margin: '0 0 4px', paddingLeft: '18px', lineHeight: 1.7 } },
+        ['“Add 12 black Northline tees, S to XL, $19.99, and print hang tags for all of them.”',
+         '“What phones under $300 do we have in grade A?”',
+         '“Sold the iPhone with IMEI 356789104455661 for $420.”',
+         '“Make me 50 blank stickers on Avery 5160 sheets.”',
+         '“Undo the last price change on the denim jacket.”'].map(t => h('li', null, t))),
+      h('p', { class: 'muted small' }, 'Changes show up here as they happen, and every change is saved in the item’s history so it can be undone.')));
+
+    if (info.local) {
+      const list = h('div', { class: 'col', style: { gap: '0' } });
+      const allBox = h('div');
+      const render = (agents) => {
+        const todo = agents.filter(a => a.detected && !a.connected);
+        allBox.replaceChildren(todo.length > 1 ? h('button', { class: 'btn primary', onclick: async () => { for (const a of todo) await act(a, false); } }, `Connect all ${todo.length}`) : '');
+        list.replaceChildren(...agents.map(a => {
+          const badge = a.connected ? h('span', { class: 'badge success' }, 'Connected') : a.detected ? h('span', { class: 'badge accent' }, 'Found on this PC') : h('span', { class: 'badge' }, 'Not installed');
+          const btn = a.connected
+            ? h('button', { class: 'btn small', onclick: () => act(a, true) }, 'Disconnect')
+            : h('button', { class: 'btn small primary', disabled: !a.detected, onclick: () => act(a, false) }, 'Connect');
+          return h('div', { class: 'row nowrap', style: { padding: '8px 0', borderBottom: '1px solid var(--border)' } },
+            h('strong', { class: 'grow' }, a.name), badge, btn);
+        }));
+      };
+      const act = async (a, remove) => {
+        try {
+          const r = await api.post('/api/agents/connect', { id: a.id, remove });
+          toast(remove ? `${a.name} disconnected` : `${a.name} connected. ${r.after}`, { ms: 7000 });
+        } catch (e) { toast(e.message, { error: true }); }
+        render((await api.get('/api/agents')).agents);
+      };
+      render(info.agents);
+      body.append(section('Connect an assistant on this PC',
+        info.exe_error ? h('p', { class: 'warn-text' }, info.exe_error) : h('p', { class: 'muted small' }, 'One click: SHELFCODE adds itself to the assistant’s settings. Nothing to copy or paste.'),
+        list,
+        allBox));
+    }
+
+    const notes = h('textarea', { rows: 5, value: info.notes || '', placeholder: 'e.g.\n- Prices end in .99\n- Tag new arrivals with “new”\n- Phones: always fill in battery health' , style: { width: '100%' } });
+    body.append(section('Store notes',
+      h('p', { class: 'muted small' }, 'Your assistant reads these before every task and follows them. It adds to them when you tell it “always…” or “from now on…”.'),
+      notes,
+      h('div', null, h('button', { class: 'btn', onclick: () => save({ agent_notes: notes.value }, 'Store notes saved') }, 'Save notes'))));
+
+    const auth = 'Bearer ' + info.token;
+    const httpCfg = { url: info.url, headers: { Authorization: auth } };
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(httpCfg))));
+    const cursorLink = `cursor://anysphere.cursor-deeplink/mcp/install?name=shelfcode&config=${encodeURIComponent(b64)}`;
+    const vscodeLink = 'vscode:mcp/install?' + encodeURIComponent(JSON.stringify({ name: 'shelfcode', type: 'http', ...httpCfg }));
+    const tokenBox = h('code', { class: 'mono small' }, info.token.slice(0, 6) + '••••••••••••');
+    body.append(section(info.local ? 'Connect from another computer' : 'Connect your AI assistant',
+      h('p', { class: 'muted small' }, info.local ? 'For an assistant on a different PC on your network.' : 'SHELFCODE runs on this server; connect the assistant on your own computer.'),
+      h('div', { class: 'row' },
+        h('a', { class: 'btn primary', href: cursorLink }, 'Add to Cursor'),
+        h('a', { class: 'btn primary', href: vscodeLink }, 'Add to VS Code')),
+      field('Claude Code', codeLine(`claude mcp add --transport http shelfcode ${info.url} --header "Authorization: ${auth}"`)),
+      field('Gemini CLI', codeLine(`gemini mcp add --transport http shelfcode ${info.url} --header "Authorization: ${auth}"`)),
+      field('Any other MCP app (JSON)', codeLine(JSON.stringify({ mcpServers: { shelfcode: { type: 'http', ...httpCfg } } }))),
+      h('div', { class: 'row small muted' }, 'Address ', h('code', null, info.url), ' · token ', tokenBox,
+        h('button', { class: 'btn small ghost', onclick: () => { tokenBox.textContent = info.token; } }, 'Show'),
+        h('button', { class: 'btn small ghost', onclick: async () => {
+          if (!(await confirmDialog('Make a new token?', 'Assistants connected from other computers stop working until you connect them again. Assistants on this PC are not affected.', { okLabel: 'New token' }))) return;
+          await api.post('/api/agents/token'); go('#/settings/agents?r=' + Date.now());
+        } }, 'New token')),
+      h('p', { class: 'muted small' }, 'The token is like a password: anyone with it can change your inventory. Keep it private.')));
   }
 
   if (tab === 'scanner') {

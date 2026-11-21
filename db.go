@@ -260,6 +260,7 @@ var defaultSettings = map[string]any{
 	"lan_pin":           "",
 	"onboarded":         false,
 	"auto_update":       true,
+	"agent_notes":       "",
 	"last_print_job":    nil,
 	"last_backup_day":   "",
 }
@@ -277,7 +278,7 @@ func getSettings() (map[string]any, error) {
 	for rows.Next() {
 		var k, v string
 		rows.Scan(&k, &v)
-		if k == "schema_version" {
+		if k == "schema_version" || k == "agent_token" {
 			continue
 		}
 		var x any

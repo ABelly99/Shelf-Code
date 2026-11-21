@@ -53,6 +53,21 @@ export default async function ({ main, query }) {
     }
   }
 
+  // ?job=ID: a print sheet prepared by an AI agent (or any saved layout)
+  const job = query.get('job');
+  if (job) {
+    try {
+      const { docs } = await api.get('/api/docs/printjob');
+      const d = docs.find(x => String(x.id) === job);
+      if (d?.data) {
+        st.lines = (d.data.lines || []).map(l => ({ ...l, id: nextId() }));
+        Object.assign(st.page, d.data.page || {});
+        saveState(st);
+      }
+    } catch { /* keep the current list */ }
+    history.replaceState(null, '', '#/print');
+  }
+
   // ?add=1,2,3 from the item page / list
   const add = query.get('add');
   if (add) {

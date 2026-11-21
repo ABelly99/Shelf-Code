@@ -45,6 +45,11 @@ func (h *eventHub) broadcast(kind string, data any) {
 }
 
 func (h *eventHub) sendScan(code, source string) bool {
+	return h.sendBest("scan", map[string]any{"code": code, "source": source, "at": time.Now().UnixMilli()})
+}
+
+// sendBest delivers an event to the one page that was used most recently.
+func (h *eventHub) sendBest(kind string, data any) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	var best *sseClient
@@ -58,9 +63,8 @@ func (h *eventHub) sendScan(code, source string) bool {
 	if best == nil {
 		return false
 	}
-	msg := encodeEvent("scan", map[string]any{"code": code, "source": source, "at": time.Now().UnixMilli()})
 	select {
-	case best.ch <- msg:
+	case best.ch <- encodeEvent(kind, data):
 		return true
 	default:
 		return false

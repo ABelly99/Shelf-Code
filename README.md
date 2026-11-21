@@ -8,6 +8,7 @@ It is one program. Start it, and a simple window shows your addresses while the 
 
 ## Features
 
+- **Run it from your AI assistant (MCP).** Connect Claude Code, Claude Desktop, Cursor, VS Code, Windsurf, Gemini CLI or Codex with one click, then just ask: *"add 12 black tees in S–XL at $19.99 and print their tags"*. Your screen follows along. See [docs/agents.md](docs/agents.md).
 - **Strict code lookup.** Scan or type a code. If it exactly matches an item, the item opens. If not, nothing happens. Extra codes (manufacturer UPC/EAN, serial) and "scannable" fields like IMEI or ISBN also work.
 - **Make it fit anything.** Categories and sub-categories, each with its own fields: text, number with unit, money, dropdown, ordered sizes, multiple choice, yes/no, date, colour, link, identifier, and age computed from a date. Starter templates for Clothing, Phones, Electronics, Books, Shoes, Jewelry, Tools & Parts, and General.
 - **Rich items.** Photos (drag, drop or paste), price, cost and margin, quantity, status, location, supplier, tags, description, and private notes.
@@ -97,6 +98,7 @@ In the browser's print dialog, choose **Scale 100% / Actual size** and **Margins
 | `site <address>` | use a different scanner website |
 | `scan <code>` | send a test scan to the open page |
 | `backup` | make a backup now |
+| `agents` | connect every AI assistant on this PC |
 | `quit` | stop SHELFCODE |
 
 Start options: `--port 9000`, `--no-browser`, `--local-only` (only this PC), `--data D:\ShopData`. `--headless` runs it as a server. `shelfcode --help` lists every option.
@@ -165,6 +167,7 @@ SHELFCODE is made for Windows, and the same code also runs on macOS and Linux. O
 | `backup.go` | backups and restore |
 | `scanner.go`, `events.go` | phone-scanner relay connector, and pushing scans to open pages |
 | `media.go` | photos |
+| `mcp.go`, `agents.go` | MCP server for AI assistants (tools, HTTP + stdio), one-click agent connection |
 | `shortcut_*.go` | desktop shortcut on first start (Windows) |
 | `templates/` | starter categories (JSON) |
 | `web/` | the browser app (plain HTML, CSS and JavaScript, no build step) |

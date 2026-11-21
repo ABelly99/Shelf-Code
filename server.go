@@ -150,7 +150,7 @@ func middleware(next http.Handler) http.Handler {
 			}
 			// Static files are fine to serve; the app shows the PIN screen.
 		}
-		if api || strings.HasPrefix(r.URL.Path, "/img/") || strings.HasPrefix(r.URL.Path, "/backup-file/") {
+		if api || r.URL.Path == "/mcp" || strings.HasPrefix(r.URL.Path, "/img/") || strings.HasPrefix(r.URL.Path, "/backup-file/") {
 			if r.URL.Path == "/api/events" {
 				// Long-lived stream: do not hold the db lock.
 				next.ServeHTTP(w, r)
@@ -273,6 +273,13 @@ func routes() http.Handler {
 	mux.HandleFunc("POST /api/backups/upload", handleUploadBackup)
 	mux.HandleFunc("GET /backup-file/{name}", handleDownloadBackup)
 
+	mux.HandleFunc("POST /mcp", handleMCP)
+	mux.HandleFunc("GET /mcp", handleMCP)
+	mux.HandleFunc("DELETE /mcp", handleMCP)
+	mux.HandleFunc("GET /api/agents", handleAgents)
+	mux.HandleFunc("POST /api/agents/connect", handleAgentConnect)
+	mux.HandleFunc("POST /api/agents/token", handleAgentToken)
+
 	mux.HandleFunc("GET /api/scanner", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, scanner.snapshot()) })
 	mux.HandleFunc("POST /api/scanner/connect", handleScannerConnect)
 	mux.HandleFunc("POST /api/scanner/disconnect", func(w http.ResponseWriter, r *http.Request) {
@@ -289,6 +296,7 @@ func routes() http.Handler {
 		writeJSON(w, map[string]any{"delivered": deliverScan(strings.TrimSpace(b.Code), "test")})
 	})
 
+	innerMux = mux
 	return middleware(mux)
 }
 
