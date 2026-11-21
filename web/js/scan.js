@@ -66,7 +66,8 @@ export function startEvents() {
     const d = JSON.parse(ev.data);
     const el = document.activeElement;
     // Like Barcode Typer: if the cursor is in a field that accepts scans, type it there.
-    if (isTyping(el) && el.tagName === 'INPUT' && el.closest('.accept-scan') && !el.closest('.lookup')) {
+    // Code-type boxes (Code, IMEI, serial, other codes) take the scan; other pages/fields route it.
+    if (isTyping(el) && el.tagName === 'INPUT' && el.classList.contains('code-input') && el.closest('.accept-scan') && !el.closest('.lookup')) {
       const start = el.selectionStart ?? el.value.length, end = el.selectionEnd ?? el.value.length;
       el.value = el.value.slice(0, start) + d.code + el.value.slice(end);
       el.dispatchEvent(new Event('input', { bubbles: true }));

@@ -97,7 +97,7 @@ export function fieldInput(f, value, item = null) {
       get = () => input.value.trim() || null;
       break;
     case 'identifier':
-      input = h('input', { id, type: 'text', class: 'code-input', value: value ?? '', spellcheck: 'false', autocomplete: 'off' });
+      input = h('input', { id, type: 'text', class: 'code-input', value: value ?? '', spellcheck: 'false', autocomplete: 'off', onkeydown: (ev) => { if (ev.key === 'Enter') ev.preventDefault(); } });
       get = () => input.value.trim() || null;
       break;
     case 'age': {
@@ -172,7 +172,7 @@ export function tagInput(tags = []) {
   return { el: box, get: () => { if (input.value.trim()) add(input.value); return [...cur]; } };
 }
 
-const CODE_KINDS = { upc: 'UPC / EAN', imei: 'IMEI', serial: 'Serial', sku: 'SKU', isbn: 'ISBN', other: 'Other' };
+const CODE_KINDS = { label: 'Printed label', upc: 'UPC / EAN', imei: 'IMEI', serial: 'Serial', sku: 'SKU', isbn: 'ISBN', other: 'Other' };
 
 export function extraCodesEditor(list = []) {
   const rows = [];
@@ -180,7 +180,7 @@ export function extraCodesEditor(list = []) {
   const addBtn = h('button', { type: 'button', class: 'btn small', onclick: () => { addRow({ kind: 'upc', code: '' }); rows[rows.length - 1].input.focus(); } }, '+ Add code');
   const addRow = (e) => {
     const kind = h('select', null, Object.entries(CODE_KINDS).map(([k, l]) => h('option', { value: k, selected: k === e.kind }, l)));
-    const input = h('input', { type: 'text', class: 'code-input', value: e.code, placeholder: 'Scan or type', spellcheck: 'false', autocomplete: 'off' });
+    const input = h('input', { type: 'text', class: 'code-input', value: e.code, placeholder: 'Scan or type', spellcheck: 'false', autocomplete: 'off', onkeydown: (ev) => { if (ev.key === 'Enter') ev.preventDefault(); } });
     const row = h('div', { class: 'ec' }, kind, input, h('button', { type: 'button', class: 'btn icon ghost', 'aria-label': 'Remove code', onclick: () => { row.remove(); rows.splice(rows.indexOf(r), 1); } }, '×'));
     const r = { row, kind, input };
     rows.push(r);

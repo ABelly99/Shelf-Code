@@ -150,6 +150,36 @@ export default async function ({ main, query }) {
     changed(true);
   }
 
+  // Blank codes: unique random codes printed now and given to items later (scan one → new item).
+  async function addBlank() {
+    const count = h('input', { type: 'number', min: 1, max: 1000, value: 30, style: { width: '110px' }, autofocus: true });
+    const copies = h('input', { type: 'number', min: 1, max: 20, value: 1, style: { width: '110px' } });
+    const fmt = formatSelect(app.settings.default_format || 'code128');
+    const lsel = h('select', null, labelOptions(app.labels.find(l => l.name.startsWith('Small'))?.id ?? defaultLabelFor(null)?.id));
+    const err = h('div', { class: 'danger-text small' });
+    const r = await dialog({
+      title: 'Print blank codes',
+      body: h('div', { class: 'col' },
+        h('p', { class: 'muted small' }, 'Makes new random codes that no item uses yet. Stick them on things now; later, scan one and SHELFCODE opens a new item with that code filled in (or lets you attach it to an existing item).'),
+        h('div', { class: 'grid2' },
+          h('div', { class: 'field' }, h('label', null, 'How many codes'), count),
+          h('div', { class: 'field' }, h('label', null, 'Copies of each'), copies),
+          h('div', { class: 'field' }, h('label', null, 'Label design'), lsel),
+          h('div', { class: 'field' }, h('label', null, 'Barcode format'), fmt)),
+        err),
+      actions: [{ label: 'Add to print list', primary: true, onClick: async () => {
+        const n = Math.round(Number(count.value));
+        if (!(n >= 1 && n <= 1000)) { err.textContent = 'Choose between 1 and 1000.'; return false; }
+        try { return await api.post('/api/codes/reserve', { count: n, format: fmt.value }); }
+        catch (e) { err.textContent = e.message; return false; }
+      } }],
+    });
+    if (!r?.codes) return;
+    st.lines.push({ id: nextId(), batch: r.codes, format: r.format, label_id: Number(lsel.value), qty: Math.max(1, Math.round(Number(copies.value)) || 1) });
+    changed(true);
+    toast(`${r.codes.length} new blank codes added. They are saved, so they stay unique even if you don't print them now.`);
+  }
+
   const labelOptions = (selected) => app.labels.map(l => h('option', { value: l.id, selected: l.id === selected }, `${l.name}`));
 
   function renderLines() {
@@ -157,10 +187,11 @@ export default async function ({ main, query }) {
     if (!st.lines.length) {
       linesBox.appendChild(h('div', { class: 'panel empty', style: { padding: '28px 16px' } },
         h('p', null, 'Nothing to print yet.'),
-        h('p', { class: 'muted small' }, 'Scan codes into the box above, or select items in the ', h('a', { href: '#/items' }, 'item list'), ' and choose “Print labels”.')));
+        h('p', { class: 'muted small' }, 'Scan codes into the box above, or select items in the ', h('a', { href: '#/items' }, 'item list'), ' and choose “Print labels”.'),
+        h('button', { class: 'btn', onclick: () => addBlank() }, '+ Print blank codes to assign later')));
       return;
     }
-    const totalLabels = st.lines.reduce((a, l) => a + (Number(l.qty) || 0), 0);
+    const totalLabels = st.lines.reduce((a, l) => a + (Number(l.qty) || 0) * (l.batch ? l.batch.length : 1), 0);
     linesBox.appendChild(h('div', { class: 'table-wrap' }, h('table', { class: 't print-lines' },
       h('thead', null, h('tr', null, h('th', null, 'Item / code'), h('th', null, 'Label design / format'), h('th', { class: 'num' }, 'Copies'), h('th', null, ''))),
       h('tbody', null, st.lines.map((l, i) => {
@@ -170,7 +201,10 @@ export default async function ({ main, query }) {
         const fsel = h('select', { onchange: () => { l.format = fsel.value; changed(); } }, h('option', { value: '' }, it ? `Item’s (${formatLabel(it.barcode_format)})` : 'Default'),
           Object.entries(FORMATS).map(([k, f]) => h('option', { value: k, selected: l.format === k }, f.label)));
         return h('tr', { class: 'stack' },
-          h('td', { class: 'wrap' },
+          l.batch ? h('td', { class: 'wrap' },
+            h('div', null, h('strong', null, `${l.batch.length} blank codes`), h('span', { class: 'muted small' }, ' (not assigned yet)')),
+            h('div', { class: 'mono small muted' }, l.batch.length > 1 ? `${l.batch[0]} … ${l.batch[l.batch.length - 1]}` : l.batch[0]))
+          : h('td', { class: 'wrap' },
             h('div', null, it ? h('a', { href: `#/item/${it.id}` }, it.name) : h('span', { class: 'muted' }, l.text || '(code only)')),
             h('div', { class: 'mono small muted' }, it ? it.code : l.code)),
           h('td', null, h('div', { class: 'col', style: { gap: '4px' } }, lsel, fsel)),
@@ -201,8 +235,15 @@ export default async function ({ main, query }) {
     for (const l of st.lines) {
       const it = l.item_id ? items.get(l.item_id) : null;
       const tpl = labelById(l.label_id) || defaultLabelFor(it?.category_id);
-      const d = labelData(l, it);
       const w = tpl?.data?.w || 50, hh = tpl?.data?.h || 30;
+      if (l.batch) {
+        for (const code of l.batch) {
+          const d = labelData({ code, format: l.format, text: '' }, null);
+          for (let i = 0; i < (Number(l.qty) || 0); i++) out.push({ w, h: hh, tpl, data: d });
+        }
+        continue;
+      }
+      const d = labelData(l, it);
       for (let i = 0; i < (Number(l.qty) || 0); i++) out.push({ w, h: hh, tpl, data: d, item_id: l.item_id });
     }
     return out;
@@ -284,7 +325,7 @@ export default async function ({ main, query }) {
     h('div', { class: 'panel', style: { marginBottom: '16px', padding: '12px 16px' } }, h('div', { class: 'row', style: { gap: '12px' } }, modeBtns), h('div', { style: { marginTop: '10px' } }, settingsBox)),
     h('div', { class: 'print-layout' },
       h('div', null,
-        h('div', { class: 'addbox' }, addInput, h('button', { class: 'btn', onclick: () => addByCode(addInput.value) }, 'Add'), h('button', { class: 'btn', onclick: () => addRaw() }, '+ Code only')),
+        h('div', { class: 'addbox' }, addInput, h('button', { class: 'btn', onclick: () => addByCode(addInput.value) }, 'Add'), h('button', { class: 'btn', onclick: () => addRaw() }, '+ Code only'), h('button', { class: 'btn', onclick: () => addBlank(), title: 'Random codes to assign to items later' }, '+ Blank codes')),
         addMsg,
         linesBox),
       h('div', null,

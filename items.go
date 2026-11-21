@@ -455,6 +455,8 @@ func writeCodes(tx *sql.Tx, itemID int64, codes []codeEntry) error {
 		if _, err := tx.Exec(`INSERT INTO code_index(code, code_lower, item_id, source) VALUES(?,?,?,?)`, c.code, strings.ToLower(c.code), itemID, c.source); err != nil {
 			return err
 		}
+		// A blank pre-printed code is now assigned to this item.
+		tx.Exec(`DELETE FROM reserved_codes WHERE code=?`, c.code)
 	}
 	return nil
 }
@@ -665,10 +667,59 @@ func handleLookup(w http.ResponseWriter, r *http.Request) {
 		err = db.QueryRow(`SELECT ci.item_id FROM code_index ci JOIN items i ON i.id=ci.item_id WHERE ci.code=? AND i.deleted_at IS NULL`, code).Scan(&id)
 	}
 	if err != nil {
+		// Not an item. A blank code printed earlier? Then the page offers to assign it.
+		var x int
+		if db.QueryRow(`SELECT 1 FROM reserved_codes WHERE code=?`, code).Scan(&x) == nil {
+			writeJSON(w, map[string]any{"reserved": true})
+			return
+		}
 		writeJSON(w, map[string]any{})
 		return
 	}
 	writeJSON(w, map[string]any{"item_id": id})
+}
+
+// POST /api/codes/reserve {count, format}: make unique blank codes to print now and assign later.
+func handleReserveCodes(w http.ResponseWriter, r *http.Request) {
+	var b struct {
+		Count  int    `json:"count"`
+		Format string `json:"format"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if b.Count < 1 || b.Count > 1000 {
+		writeErr(w, 400, "Choose between 1 and 1000 codes")
+		return
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		sendErr(w, err)
+		return
+	}
+	defer tx.Rollback()
+	codes := []string{}
+	format := ""
+	for i := 0; i < b.Count; i++ {
+		code, seq, f, err := nextCodeFmtTx(tx, 0, b.Format)
+		if err != nil {
+			sendErr(w, err)
+			return
+		}
+		if _, err := tx.Exec(`INSERT INTO reserved_codes(code, format, created_at) VALUES(?,?,?)`, code, f, now()); err != nil {
+			sendErr(w, err)
+			return
+		}
+		bumpSeqTx(tx, nil, seq)
+		codes = append(codes, code)
+		format = f
+	}
+	if err := tx.Commit(); err != nil {
+		sendErr(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"codes": codes, "format": format})
 }
 
 func handleCodeCheck(w http.ResponseWriter, r *http.Request) {
@@ -1233,6 +1284,11 @@ func handleVariants(w http.ResponseWriter, r *http.Request) {
 
 // nextCodeTx is nextCode but sees codes inserted earlier in the same transaction.
 func nextCodeTx(tx *sql.Tx, catID int64) (string, int64, string, error) {
+	return nextCodeFmtTx(tx, catID, "")
+}
+
+// nextCodeFmtTx generates a free code; formatOverride ("" = category/app default) picks the barcode format.
+func nextCodeFmtTx(tx *sql.Tx, catID int64, formatOverride string) (string, int64, string, error) {
 	pattern := settingString("code_pattern")
 	if pattern == "" {
 		pattern = defaultCodePattern
@@ -1245,6 +1301,9 @@ func nextCodeTx(tx *sql.Tx, catID int64) (string, int64, string, error) {
 		fmt.Sscan(gs, &seq)
 	}
 	format := codeFormatFor(tx, catID)
+	if formatOverride != "" {
+		format = formatOverride
+	}
 	if catID > 0 {
 		var p string
 		var s int64
@@ -1263,7 +1322,8 @@ func nextCodeTx(tx *sql.Tx, catID int64) (string, int64, string, error) {
 			code = renderPattern(pattern, prefix, seq, time.Now())
 		}
 		var x int
-		if tx.QueryRow(`SELECT 1 FROM code_index WHERE code=?`, code).Scan(&x) != nil {
+		// Free = not used by an item and not printed earlier as a blank code.
+		if tx.QueryRow(`SELECT 1 FROM code_index WHERE code=? UNION ALL SELECT 1 FROM reserved_codes WHERE code=?`, code, code).Scan(&x) != nil {
 			return code, seq, format, nil
 		}
 		seq++

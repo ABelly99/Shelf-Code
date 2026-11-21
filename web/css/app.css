@@ -350,7 +350,7 @@ a.stat { color: inherit; }
 .print-lines select { width: 100%; max-width: 190px; }
 .print-lines tr.stack td { height: auto; padding-top: 6px; padding-bottom: 6px; vertical-align: middle; }
 .print-lines td.wrap { min-width: 110px; max-width: 200px; overflow-wrap: anywhere; }
-.addbox { display: flex; gap: 8px; margin-bottom: 10px; }
+.addbox { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 .addbox input { flex: 1; font-family: var(--mono); }
 .label-designer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 340px); gap: 16px; align-items: start; }
 @media (max-width: 860px) { .label-designer { grid-template-columns: 1fr; } }
@@ -364,6 +364,7 @@ a.stat { color: inherit; }
 .big-total { font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .flash-ok { animation: flashok .6s; }
 @keyframes flashok { from { background: var(--success-soft); } }
+input.flash-ok { animation: flashok .7s; border-color: var(--success); }
 
 /* ---------- PIN screen ---------- */
 .pin-screen { position: fixed; inset: 0; background: var(--bg); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 16px; }

@@ -141,6 +141,13 @@ export async function lookup(code) {
     go('#/item/' + r.item_id);
     return;
   }
+  if (r.reserved) {
+    // A blank code printed earlier: assign it to a new (or existing) item.
+    lookupInput.value = '';
+    lookupInput.blur();
+    go('#/new?blank=1&code=' + encodeURIComponent(code));
+    return;
+  }
   // No match: do nothing (by default). Optional quiet signal from Settings.
   if (!app.settings.lookup_keep_text) lookupInput.value = '';
   const sig = app.settings.lookup_nomatch;

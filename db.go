@@ -19,7 +19,7 @@ var (
 	db     *sql.DB
 )
 
-const schemaVersion = 2
+const schemaVersion = 3
 
 func dbPath() string { return filepath.Join(dataDir, "shelfcode.db") }
 
@@ -195,6 +195,12 @@ func migrate() error {
 		// 1.0.0 generated counting-up codes (PH-000001). New default: random numbers.
 		// Only replace the old default; a pattern someone chose stays.
 		if _, err := tx.Exec(`DELETE FROM settings WHERE key='code_pattern' AND value='"{PREFIX}{SEQ:6}"'`); err != nil {
+			return err
+		}
+	}
+	if v < 3 {
+		// Blank codes printed ahead of time, waiting to be assigned to an item.
+		if _, err := tx.Exec(`CREATE TABLE IF NOT EXISTS reserved_codes (code TEXT PRIMARY KEY, format TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL)`); err != nil {
 			return err
 		}
 	}

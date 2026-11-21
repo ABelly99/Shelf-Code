@@ -376,6 +376,8 @@ async function editView({ main }, id, query) {
   }, 200);
   codeInput.addEventListener('input', () => { if (codeInput.value.trim() !== generated) { generated = null; genSeq = null; } checkCode(); });
   fmtSel.addEventListener('change', checkCode);
+  // Scanners press Enter after the code: don't submit the form, go on to the name.
+  codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); nameInput.focus(); } });
 
   const generate = async () => {
     const r = await api.get(`/api/codes/next?category=${catSel.value || ''}`);
@@ -442,12 +444,12 @@ async function editView({ main }, id, query) {
       tags: tags.get(), extra_codes: extra.get(), parent_id: it.parent_id,
     };
     const p = parseMoney(priceInput.value), c = parseMoney(costInput.value);
-    if (Number.isNaN(p)) { setErr('price', 'Enter an amount, like 12.50'); throw Object.assign(new Error('Price is not a valid amount'), { focus: () => priceInput.focus() }); }
-    if (Number.isNaN(c)) { setErr('cost', 'Enter an amount, like 12.50'); throw Object.assign(new Error('Cost is not a valid amount'), { focus: () => costInput.focus() }); }
+    if (Number.isNaN(p)) { setErr('price', 'Enter an amount, like 12.50'); if (!quiet) throw Object.assign(new Error('Price is not a valid amount'), { focus: () => priceInput.focus() }); }
+    if (Number.isNaN(c)) { setErr('cost', 'Enter an amount, like 12.50'); if (!quiet) throw Object.assign(new Error('Cost is not a valid amount'), { focus: () => costInput.focus() }); }
     out.price = p; out.cost = c;
     out.low_stock_at = lowInput.value === '' ? null : Math.round(Number(lowInput.value));
-    if (!out.code) { setErr('code', 'Enter or generate a code'); throw Object.assign(new Error('Code is required'), { focus: () => codeInput.focus() }); }
-    if (!out.name) { setErr('name', 'Give the item a name'); throw Object.assign(new Error('Name is required'), { focus: () => nameInput.focus() }); }
+    if (!out.code) { setErr('code', 'Enter or generate a code'); if (!quiet) throw Object.assign(new Error('Code is required'), { focus: () => codeInput.focus() }); }
+    if (!out.name) { setErr('name', 'Give the item a name'); if (!quiet) throw Object.assign(new Error('Name is required'), { focus: () => nameInput.focus() }); }
     out.custom = collectCustom(quiet);
     for (const fi of customInputs) {
       if (quiet) break;
@@ -558,6 +560,15 @@ async function editView({ main }, id, query) {
       h('button', { class: 'btn big', type: 'button', onclick: () => save(true), title: 'Ctrl+Shift+S' }, isNew ? 'Create & add another' : 'Save & new item'),
       h('button', { class: 'btn ghost', type: 'button', onclick: () => cancel() }, 'Cancel'),
       h('span', { class: 'muted small', style: { marginLeft: 'auto' } }, 'Ctrl+S to save · Esc to cancel')));
+  if (isNew && query.get('blank') && it.code) {
+    // A pre-printed blank code was scanned: create its item here, or attach it to one that exists.
+    form.insertBefore(h('div', { class: 'panel', style: { background: 'var(--accent-soft)', borderColor: 'var(--accent)', marginBottom: '16px' } },
+      h('div', { class: 'row' },
+        h('div', { class: 'grow' }, h('strong', null, 'Printed code ', h('span', { class: 'mono' }, it.code), ' is not used yet.'),
+          h('div', { class: 'small muted' }, 'Fill in the details below to create its item, or attach the code to an item you already have.')),
+        h('button', { class: 'btn', type: 'button', onclick: () => attachToExisting(it.code, () => { snapshot = snap(); }) }, 'Attach to an existing item…'))),
+      form.children[1]);
+  }
   main.appendChild(form);
   renderCustom();
   if (isNew && !it.code) await generate();
@@ -568,10 +579,55 @@ async function editView({ main }, id, query) {
   const onEsc = (e) => { if (e.key === 'Escape' && !document.querySelector('.overlay') && main.contains(form)) { e.preventDefault(); cancel(); } };
   document.addEventListener('keydown', onEsc);
 
+  // Scanning while adding an item fills in the Code box (code-type fields like IMEI take
+  // the scan themselves when the cursor is in them).
+  const onScan = isNew ? (code) => {
+    codeInput.value = code;
+    generated = null; genSeq = null;
+    fmtSel.value = guessFormat(code);
+    checkCode();
+    codeInput.classList.add('flash-ok');
+    setTimeout(() => codeInput.classList.remove('flash-ok'), 700);
+    return true;
+  } : null;
+
   return {
+    onScan,
     shortcuts: { save: (shift) => save(!!shift) },
     dirty: () => snap() !== snapshot,
     canLeave: async () => snap() === snapshot || await confirmDialog('Leave without saving?', 'Your changes to this item will be lost.', { okLabel: 'Leave', danger: true }),
     destroy: () => { imgs.destroy(); document.removeEventListener('keydown', onEsc); },
   };
+}
+
+// Attach a pre-printed code to an item that already exists (as one of its "other codes").
+async function attachToExisting(code, done) {
+  const input = h('input', { type: 'search', placeholder: 'Type part of a name…', style: { width: '100%' }, autofocus: true });
+  const list = h('ul', { class: 'list-plain', style: { maxHeight: '320px', overflowY: 'auto', marginTop: '8px' } });
+  let timer;
+  const search = () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const r = await api.get('/api/items?limit=30&q=' + encodeURIComponent(input.value.trim()), { quiet: true });
+      list.replaceChildren(...r.items.map(it => h('li', null,
+        h('span', { class: 'grow' }, it.name), h('span', { class: 'mono small muted' }, it.code),
+        h('button', { class: 'btn small primary', onclick: () => attach(it.id) }, 'Attach'))));
+      if (!r.items.length) list.replaceChildren(h('li', { class: 'muted' }, 'No items found.'));
+    }, 200);
+  };
+  let closeDlg;
+  const attach = async (id) => {
+    try {
+      const full = (await api.get(`/api/items/${id}`)).item;
+      full.extra_codes = [...full.extra_codes, { kind: 'label', code }];
+      await api.put(`/api/items/${id}`, { ...full, expect_updated_at: full.updated_at });
+      closeDlg?.();
+      done?.();
+      toast(`Code ${code} now opens “${full.name}”`);
+      go(`#/item/${id}`);
+    } catch (e) { toast(e.message, { error: true }); }
+  };
+  input.addEventListener('input', search);
+  search();
+  await dialog({ title: `Attach ${code} to…`, body: (close) => { closeDlg = close; return h('div', null, input, list); }, cancelLabel: 'Close' });
 }

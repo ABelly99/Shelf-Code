@@ -218,6 +218,7 @@ func routes() http.Handler {
 	mux.HandleFunc("GET /api/lookup", handleLookup)
 	mux.HandleFunc("GET /api/codes/check", handleCodeCheck)
 	mux.HandleFunc("GET /api/codes/next", handleCodeNext)
+	mux.HandleFunc("POST /api/codes/reserve", handleReserveCodes)
 
 	mux.HandleFunc("GET /api/items", handleListItems)
 	mux.HandleFunc("GET /api/items/{id}", handleGetItem)
