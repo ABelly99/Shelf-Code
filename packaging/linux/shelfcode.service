@@ -1,0 +1,47 @@
+[Unit]
+Description=SHELFCODE barcode inventory
+Documentation=https://github.com/ABelly99/Shelf-Code
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=shelfcode
+Group=shelfcode
+Environment=SHELFCODE_DATA=/var/lib/shelfcode
+Environment=SHELFCODE_HEADLESS=1
+# Settings (port, PIN, …) live here; they override the lines above.
+EnvironmentFile=-/etc/shelfcode/shelfcode.env
+ExecStart=/usr/bin/shelfcode
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+
+# Data folder /var/lib/shelfcode, created and owned by the service user.
+StateDirectory=shelfcode
+StateDirectoryMode=0750
+UMask=0027
+
+# Hardening. To keep data somewhere else, add ReadWritePaths= with
+#   sudo systemctl edit shelfcode
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

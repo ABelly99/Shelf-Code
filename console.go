@@ -39,7 +39,17 @@ func init() {
 	}()
 }
 
+// plainLog: server mode (systemd/Docker): one plain line per event, no prompt, no colours.
+var plainLog bool
+
 func logLine(color, tag, msg string) {
+	if plainLog {
+		select {
+		case logCh <- fmt.Sprintf("%-8s %s\n", tag, msg):
+		default:
+		}
+		return
+	}
 	line := fmt.Sprintf("\r%s%s%s  %s%-8s%s %s\n%s> %s", cGray, time.Now().Format("15:04:05"), cReset, color, tag, cReset, msg, cBold, cReset)
 	select {
 	case logCh <- line:
@@ -120,6 +130,7 @@ func consoleLoop() {
 				"  "+cBold+"site <address>"+cReset+"           change the scanner website (now: "+settingString("scanner_relay_url")+")",
 				"  "+cBold+"scan <code>"+cReset+"              send a test scan to the open page",
 				"  "+cBold+"backup"+cReset+"                   make a backup now",
+				"  "+cBold+"shortcut"+cReset+"                 put a SHELFCODE shortcut on the desktop",
 				"  "+cBold+"clear"+cReset+"                    clear this window",
 				"  "+cBold+"quit"+cReset+"                     stop SHELFCODE (closing the window does the same)",
 				"",
@@ -203,6 +214,14 @@ func consoleLoop() {
 				say("  " + cRed + "Backup failed: " + err.Error() + cReset)
 			} else {
 				say("  Backup saved: " + name)
+			}
+		case "shortcut":
+			if name, err := createDesktopShortcut(); err != nil {
+				say("  " + cRed + "Could not create the shortcut: " + err.Error() + cReset)
+			} else if name == "" {
+				say("  Desktop shortcuts are only made on Windows.")
+			} else {
+				say("  Shortcut created: " + name)
 			}
 		case "clear", "cls":
 			outMu.Lock()

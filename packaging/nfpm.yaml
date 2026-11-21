@@ -1,0 +1,40 @@
+# .deb and .rpm packages (built by scripts/release.sh with nfpm).
+name: shelfcode
+arch: ${NFPM_ARCH}
+platform: linux
+version: ${VERSION}
+section: misc
+priority: optional
+maintainer: ABelly99 <https://github.com/ABelly99>
+description: |
+  SHELFCODE barcode inventory database.
+  A self-hosted web app for any kind of store: custom fields, strict barcode
+  lookup, label printing, stock, backups. Runs as the "shelfcode" service on port 8765.
+vendor: ABelly99
+homepage: https://github.com/ABelly99/Shelf-Code
+license: CC0-1.0
+contents:
+  - src: ${BINARY}
+    dst: /usr/bin/shelfcode
+    file_info:
+      mode: 0755
+  - src: packaging/linux/shelfcode.service
+    dst: /usr/lib/systemd/system/shelfcode.service
+  - src: packaging/linux/shelfcode.env
+    dst: /etc/shelfcode/shelfcode.env
+    type: config|noreplace
+    file_info:
+      mode: 0640
+  - dst: /var/lib/shelfcode
+    type: dir
+    file_info:
+      mode: 0750
+scripts:
+  postinstall: packaging/linux/postinstall.sh
+  preremove: packaging/linux/preremove.sh
+  postremove: packaging/linux/postremove.sh
+overrides:
+  deb:
+    recommends: [ca-certificates]
+  rpm:
+    recommends: [ca-certificates]

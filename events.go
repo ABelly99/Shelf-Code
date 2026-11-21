@@ -87,6 +87,7 @@ func handleEvents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no") // nginx: don't buffer the stream
 	c := &sseClient{id: id, ch: make(chan []byte, 32), lastUsed: time.Now(), visible: true, remote: r.RemoteAddr}
 	hub.mu.Lock()
 	if old, ok := hub.clients[id]; ok {

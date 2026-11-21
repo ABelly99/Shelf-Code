@@ -1,0 +1,63 @@
+name: shelfcode
+services:
+  shelfcode:
+    image: ghcr.io/abelly99/shelf-code:latest
+    container_name: shelfcode
+    restart: unless-stopped
+    network_mode: bridge
+    ports:
+      - target: 8765
+        published: "8765"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /DATA/AppData/shelfcode
+        target: /data
+    environment:
+      TZ: $TZ
+    x-casaos:
+      envs:
+        - container: TZ
+          description:
+            en_us: Time zone
+      ports:
+        - container: "8765"
+          description:
+            en_us: Web interface
+      volumes:
+        - container: /data
+          description:
+            en_us: SHELFCODE database, photos and backups
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+    - arm
+  main: shelfcode
+  author: ABelly99
+  developer: ABelly99
+  category: Utilities
+  title:
+    en_us: SHELFCODE
+  tagline:
+    en_us: Barcode inventory database for any store
+  description:
+    en_us: |
+      Self-hosted barcode database for clothing, phones, books, parts – anything.
+      Custom categories and fields, strict barcode lookup, mixed label printing,
+      stock, variants, CSV import/export and daily backups. Works with USB scanners
+      and the Barcode Scanner phone app. Data is kept in /DATA/AppData/shelfcode.
+  icon: https://raw.githubusercontent.com/ABelly99/Shelf-Code/main/docs/icon.png
+  thumbnail: https://raw.githubusercontent.com/ABelly99/Shelf-Code/main/docs/items.png
+  screenshot_link:
+    - https://raw.githubusercontent.com/ABelly99/Shelf-Code/main/docs/items.png
+    - https://raw.githubusercontent.com/ABelly99/Shelf-Code/main/docs/item.png
+    - https://raw.githubusercontent.com/ABelly99/Shelf-Code/main/docs/print.png
+  index: /
+  port_map: "8765"
+  scheme: http
+  tips:
+    before_install:
+      en_us: |
+        Open SHELFCODE after installing and pick what you sell. To use a PIN, set it
+        in SHELFCODE under Settings → Network.

@@ -5,3 +5,6 @@ SHELFCODE-data/
 *.exe
 /shelfcode
 /SHELFCODE
+dist/
+build/
+*.syso

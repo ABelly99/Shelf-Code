@@ -34,7 +34,8 @@ export default async function ({ main }) {
           h('a', { class: 'grow', href: `#/item/${r.id}` }, r.name), h('span', { class: 'badge warning' }, `${r.quantity} left`))))) : null,
         d.recent_sold.length ? h('div', { class: 'panel' }, h('h2', null, 'Recently sold'), h('ul', { class: 'list-plain' }, d.recent_sold.map(r => h('li', null,
           h('a', { class: 'grow', href: `#/item/${r.id}` }, r.name), h('span', { class: 'muted small' }, `${r.qty} × ${money(r.price_each, { blank: '—' })}`), h('span', { class: 'muted small' }, relTime(r.created_at)))))) : null,
-        urls ? h('div', { class: 'panel' }, h('h2', null, 'Open on other devices'),
+        app.info?.server_mode ? h('div', { class: 'panel' }, h('h2', null, 'Open on other devices'), h('p', { class: 'small muted' }, 'Any device that can reach this server can open:'), h('div', { class: 'mono' }, location.origin)) : null,
+        urls && !app.info?.server_mode ? h('div', { class: 'panel' }, h('h2', null, 'Open on other devices'),
           h('p', { class: 'small muted' }, 'Phones and tablets on the same Wi-Fi can open:'),
           urls.lan.length ? urls.lan.map(u => h('div', { class: 'mono' }, u.url)) : h('p', { class: 'muted small' }, 'No network found.'),
           app.settings.lan_enabled === false ? h('p', { class: 'warn-text small' }, 'Turned off in Settings → Network.') : null) : null)));

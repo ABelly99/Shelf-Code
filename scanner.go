@@ -78,16 +78,16 @@ func relayWSURL(site, code string) (string, error) {
 }
 
 type scannerState struct {
-	mu        sync.Mutex
-	status    string // off | connecting | connected | error
-	message   string
-	phones    int
-	code      string
-	site      string
-	lastScan  string
-	lastAt    string
-	cancel    context.CancelFunc
-	conn      *websocket.Conn
+	mu         sync.Mutex
+	status     string // off | connecting | connected | error
+	message    string
+	phones     int
+	code       string
+	site       string
+	lastScan   string
+	lastAt     string
+	cancel     context.CancelFunc
+	conn       *websocket.Conn
 	generation int
 }
 

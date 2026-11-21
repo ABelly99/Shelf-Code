@@ -217,7 +217,7 @@ var defaultSettings = map[string]any{
 	"global_next_seq":     1,
 	"lookup_ignore_case":  false,
 	"lookup_keep_text":    false,
-	"lookup_nomatch":      "none", // none | sound | flash
+	"lookup_nomatch":      "none",    // none | sound | flash
 	"lookup_unknown":      "nothing", // nothing | offer
 	"scan_threshold_ms":   35,
 	"scan_min_length":     4,

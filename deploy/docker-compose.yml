@@ -1,0 +1,15 @@
+# SHELFCODE with Docker Compose:
+#   docker compose up -d
+# then open http://<this-machine>:8765
+services:
+  shelfcode:
+    image: ghcr.io/abelly99/shelf-code:latest
+    container_name: shelfcode
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./shelfcode-data:/data      # database, photos and backups
+    environment:
+      TZ: UTC                       # your time zone, e.g. America/Toronto
+      # SHELFCODE_PIN: "1234"       # require a PIN on every device

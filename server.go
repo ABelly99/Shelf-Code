@@ -56,6 +56,10 @@ func pathID(r *http.Request) (int64, bool) {
 	return id, err == nil && id > 0
 }
 
+// trusted: may change network settings. On a desktop that is only the PC itself; on a server
+// (no screen) every visitor who got past the PIN is the admin.
+func trusted(r *http.Request) bool { return serverMode || isLoopback(r) }
+
 func isLoopback(r *http.Request) bool {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -80,7 +84,8 @@ func pinToken(pin string) string {
 
 func pinOK(r *http.Request) bool {
 	pin := settingString("lan_pin")
-	if pin == "" || isLoopback(r) {
+	if pin == "" || (!serverMode && isLoopback(r)) {
+		// On a server, loopback is usually a reverse proxy, so it gets no free pass.
 		return true
 	}
 	c, err := r.Cookie("shelfcode_pin")
@@ -98,7 +103,8 @@ func handlePinLogin(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 403, "Wrong PIN")
 		return
 	}
-	http.SetCookie(w, &http.Cookie{Name: "shelfcode_pin", Value: pinToken(pin), Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode, MaxAge: 60 * 60 * 24 * 30})
+	secure := r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
+	http.SetCookie(w, &http.Cookie{Name: "shelfcode_pin", Value: pinToken(pin), Path: "/", HttpOnly: true, Secure: secure, SameSite: http.SameSiteStrictMode, MaxAge: 60 * 60 * 24 * 30})
 	writeJSON(w, map[string]any{"ok": true})
 }
 
@@ -113,7 +119,7 @@ func middleware(next http.Handler) http.Handler {
 		dbLock.RLock()
 		lanOn := settingBool("lan_enabled")
 		dbLock.RUnlock()
-		if !isLoopback(r) && !lanOn {
+		if !serverMode && !isLoopback(r) && !lanOn {
 			http.Error(w, "SHELFCODE: access from other devices is turned off (Settings → Network on the main PC).", http.StatusForbidden)
 			return
 		}
@@ -125,7 +131,7 @@ func middleware(next http.Handler) http.Handler {
 				writeErr(w, 403, "missing X-Shelfcode header")
 				return
 			}
-			if o := r.Header.Get("Origin"); o != "" && !sameOrigin(o, r.Host) {
+			if o := r.Header.Get("Origin"); o != "" && !sameOrigin(o, r.Host) && !sameOrigin(o, r.Header.Get("X-Forwarded-Host")) {
 				writeErr(w, 403, "cross-origin request refused")
 				return
 			}
@@ -162,8 +168,11 @@ func middleware(next http.Handler) http.Handler {
 }
 
 func sameOrigin(origin, host string) bool {
+	if host == "" {
+		return false
+	}
 	o := strings.TrimPrefix(strings.TrimPrefix(origin, "http://"), "https://")
-	return o == host
+	return strings.EqualFold(o, host)
 }
 
 func handlePinRequired(w http.ResponseWriter, r *http.Request) {
@@ -287,13 +296,14 @@ func handleInfo(w http.ResponseWriter, r *http.Request) {
 	db.QueryRow(`SELECT COUNT(*) FROM items WHERE deleted_at IS NULL`).Scan(&items)
 	db.QueryRow(`SELECT page_count*page_size FROM pragma_page_count(), pragma_page_size()`).Scan(&size)
 	writeJSON(w, map[string]any{
-		"version":    appVersion,
-		"data_dir":   dataDir,
-		"items":      items,
-		"db_bytes":   size,
-		"urls":       serverURLs(),
-		"local":      isLoopback(r),
-		"started_at": startedAt.Format(time.RFC3339),
+		"version":     appVersion,
+		"data_dir":    dataDir,
+		"items":       items,
+		"db_bytes":    size,
+		"urls":        serverURLs(),
+		"local":       trusted(r),
+		"server_mode": serverMode,
+		"started_at":  startedAt.Format(time.RFC3339),
 	})
 }
 
@@ -303,7 +313,7 @@ func handleGetSettings(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	if !isLoopback(r) {
+	if !trusted(r) {
 		s["lan_pin"] = ""
 		if settingString("lan_pin") != "" {
 			s["lan_pin_set"] = true
@@ -328,8 +338,8 @@ func handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	// Network settings can only be changed from the main PC itself.
-	if !isLoopback(r) {
+	// Network settings can only be changed from the main PC itself (or by the admin of a server).
+	if !trusted(r) {
 		delete(body, "lan_enabled")
 		delete(body, "lan_pin")
 		delete(body, "backup_extra_dir")

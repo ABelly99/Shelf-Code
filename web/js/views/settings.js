@@ -168,15 +168,25 @@ export default async function ({ main, parts }) {
     const info = await api.get('/api/info');
     const local = info.local;
     const pin = h('input', { type: 'text', value: s.lan_pin || '', placeholder: 'No PIN', inputmode: 'numeric', style: { width: '160px' }, disabled: !local });
-    body.append(section('Use SHELFCODE on other devices',
-      h('p', null, 'Phones, tablets and other PCs on the same Wi-Fi / network can open:'),
-      info.urls.lan.length ? h('div', { class: 'col', style: { gap: '4px' } }, info.urls.lan.map(u => h('div', null, h('span', { class: 'mono', style: { fontSize: '16px' } }, u.url), h('span', { class: 'muted small' }, `  (${u.iface})`))))
-        : h('p', { class: 'warn-text' }, 'No network connection found on this PC.'),
-      h('p', { class: 'muted small' }, `On this PC: ${info.urls.local}. The first time, Windows may ask whether to allow SHELFCODE on private networks — choose Allow.`),
-      local ? null : h('p', { class: 'warn-text small' }, 'These settings can only be changed on the main PC.'),
-      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: s.lan_enabled !== false, disabled: !local, onchange: (e) => save({ lan_enabled: e.target.checked }) }), 'Allow other devices'),
-      field('PIN for other devices', h('div', { class: 'row' }, pin, h('button', { class: 'btn', disabled: !local, onclick: () => save({ lan_pin: pin.value.trim() }, pin.value.trim() ? 'PIN set' : 'PIN removed') }, 'Save PIN')),
-        'Other devices must enter this PIN once (remembered for 30 days). This PC never needs it.')));
+    const pinField = field(info.server_mode ? 'PIN' : 'PIN for other devices', h('div', { class: 'row' }, pin, h('button', { class: 'btn', disabled: !local, onclick: () => save({ lan_pin: pin.value.trim() }, pin.value.trim() ? 'PIN set' : 'PIN removed') }, 'Save PIN')),
+      info.server_mode ? 'Everyone who opens SHELFCODE must enter this PIN once (remembered for 30 days on that device).' : 'Other devices must enter this PIN once (remembered for 30 days). This PC never needs it.');
+    if (info.server_mode) {
+      body.append(section('Server',
+        h('p', null, 'SHELFCODE is running as a server. Open it from any device that can reach:'),
+        h('div', { class: 'mono', style: { fontSize: '16px' } }, location.origin),
+        h('p', { class: 'muted small' }, `Version ${info.version} · data folder ${info.data_dir}`),
+        s.lan_pin ? null : h('p', { class: 'warn-text small' }, 'No PIN is set: anyone who can reach this address can use SHELFCODE.'),
+        pinField));
+    } else {
+      body.append(section('Use SHELFCODE on other devices',
+        h('p', null, 'Phones, tablets and other PCs on the same Wi-Fi / network can open:'),
+        info.urls.lan.length ? h('div', { class: 'col', style: { gap: '4px' } }, info.urls.lan.map(u => h('div', null, h('span', { class: 'mono', style: { fontSize: '16px' } }, u.url), h('span', { class: 'muted small' }, `  (${u.iface})`))))
+          : h('p', { class: 'warn-text' }, 'No network connection found on this PC.'),
+        h('p', { class: 'muted small' }, `On this PC: ${info.urls.local}. The first time, Windows may ask whether to allow SHELFCODE on private networks — choose Allow.`),
+        local ? null : h('p', { class: 'warn-text small' }, 'These settings can only be changed on the main PC.'),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: s.lan_enabled !== false, disabled: !local, onchange: (e) => save({ lan_enabled: e.target.checked }) }), 'Allow other devices'),
+        pinField));
+    }
   }
 
   if (tab === 'backup') {

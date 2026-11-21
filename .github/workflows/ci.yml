@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  GOTOOLCHAIN: auto
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - name: Build for every platform
+        run: |
+          for t in windows/amd64 windows/arm64 linux/amd64 linux/arm64 linux/arm darwin/arm64; do
+            GOOS=${t%/*} GOARCH=${t#*/} GOARM=7 CGO_ENABLED=0 go build -o /dev/null . && echo "ok $t"
+          done
+      - name: Check JavaScript syntax
+        run: for f in web/js/*.js web/js/views/*.js; do node --check "$f"; done
+      - name: Check shell scripts
+        run: bash -n packaging/linux/install.sh scripts/release.sh

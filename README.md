@@ -31,13 +31,28 @@ It is one program. Start it, and a simple window shows your addresses while the 
 
 ![Print designer with three label sizes on one page](docs/print.png)
 
-## Get started (Windows)
+## Install
 
-1. Download `SHELFCODE.exe` from the [Releases](https://github.com/ABelly99/Shelf-Code/releases) page (or [build it](#build-from-source)) and put it in its own folder, for example `Documents\SHELFCODE`.
-2. Double-click **SHELFCODE.exe**. A window opens with your addresses, and your browser opens SHELFCODE.
+| Where | How | Guide |
+|---|---|---|
+| **Windows PC** | Download [`SHELFCODE.exe`](https://github.com/ABelly99/Shelf-Code/releases/latest/download/SHELFCODE.exe), put it in an empty folder, double-click | below |
+| **Linux server** | `curl -fsSL https://github.com/ABelly99/Shelf-Code/releases/latest/download/install.sh \| sudo bash` | [docs/linux.md](docs/linux.md) |
+| **Debian / Ubuntu / Fedora** | `.deb` / `.rpm` from the [latest release](https://github.com/ABelly99/Shelf-Code/releases/latest) | [docs/linux.md](docs/linux.md) |
+| **ZimaOS / CasaOS** | App Store → **+** → Custom Install → import [`shelfcode-zimaos.yml`](https://github.com/ABelly99/Shelf-Code/releases/latest/download/shelfcode-zimaos.yml) | [docs/zimaos.md](docs/zimaos.md) |
+| **Docker** | `docker run -d -p 8765:8765 -v shelfcode-data:/data ghcr.io/abelly99/shelf-code` | [docs/docker.md](docs/docker.md) |
+
+Then open `http://<that-machine>:8765` in a browser.
+
+### Windows
+
+1. Make an empty folder, for example `Documents\SHELFCODE`, and put [`SHELFCODE.exe`](https://github.com/ABelly99/Shelf-Code/releases/latest/download/SHELFCODE.exe) in it.
+2. Double-click **SHELFCODE.exe**. On first start it sets everything up by itself:
+   - a data folder with the database, photos and backups
+   - a desktop shortcut
+   - then your browser opens SHELFCODE
 3. Pick what you sell (Clothing, Phones, …) and add your first item with **+ New item**.
 
-Keep the window open while you use SHELFCODE. Closing it stops the app.
+Keep the black window open while you use SHELFCODE. Closing it stops the app. Starting it again while it is already running just opens your browser.
 
 On first start, Windows may ask two things:
 - **"Windows protected your PC":** click *More info → Run anyway*. The program is not code-signed.
@@ -81,16 +96,17 @@ In the browser's print dialog, choose **Scale 100% / Actual size** and **Margins
 | `backup` | make a backup now |
 | `quit` | stop SHELFCODE |
 
-Start options: `--port 9000`, `--no-browser`, `--local-only` (only this PC), `--data D:\ShopData`.
+Start options: `--port 9000`, `--no-browser`, `--local-only` (only this PC), `--data D:\ShopData`. `--headless` runs it as a server. `shelfcode --help` lists every option.
 
 ### Your data
 
-Everything is stored in `SHELFCODE-data` next to the program:
+On Windows, everything is stored in `SHELFCODE-data` next to the program (on a Linux server: `/var/lib/shelfcode`; on ZimaOS: `/DATA/AppData/shelfcode`):
 
 ```
 SHELFCODE/
 ├── SHELFCODE.exe
 └── SHELFCODE-data/
+    ├── READ-ME.txt      what's in this folder
     ├── shelfcode.db     SQLite database
     ├── images/          item photos
     └── backups/         daily .zip backups (database + photos)
@@ -100,7 +116,7 @@ To move to another PC, copy the whole folder. **Settings → Backup** can make, 
 
 ## Build from source
 
-You need [Go](https://go.dev/dl/) 1.24 or newer. Nothing else is required: the web interface, templates and barcode library are built into the program.
+You need [Go](https://go.dev/dl/) 1.21 or newer (it downloads the exact Go version it needs). Nothing else is required: the web interface, templates and barcode library are built into the program.
 
 ```bash
 git clone https://github.com/ABelly99/Shelf-Code.git
@@ -122,7 +138,15 @@ For the computer you are on (Windows, macOS or Linux):
 go build -o shelfcode .
 ```
 
-SHELFCODE is made for Windows, and the same code also runs on macOS and Linux. If no browser opens, go to `http://localhost:8765`.
+All release files (Windows `.exe` with version info, Linux tarballs, `.deb`/`.rpm`, ZimaOS files, checksums) go into `dist/`:
+
+```bash
+./scripts/release.sh 1.0.0
+```
+
+Pushing a tag like `v1.0.0` makes GitHub Actions build all of these, publish the release, and push the Docker image to `ghcr.io/abelly99/shelf-code`.
+
+SHELFCODE is made for Windows, and the same code also runs on macOS and Linux. On Linux and macOS it runs as a server (no console window) when started without a terminal, or with `--headless`.
 
 ### Project layout
 
@@ -138,8 +162,12 @@ SHELFCODE is made for Windows, and the same code also runs on macOS and Linux. I
 | `backup.go` | backups and restore |
 | `scanner.go`, `events.go` | phone-scanner relay connector, and pushing scans to open pages |
 | `media.go` | photos |
+| `shortcut_*.go` | desktop shortcut on first start (Windows) |
 | `templates/` | starter categories (JSON) |
 | `web/` | the browser app (plain HTML, CSS and JavaScript, no build step) |
+| `packaging/` | Linux service, installer and package scripts, Windows icon |
+| `deploy/` | Docker Compose and ZimaOS app files |
+| `Dockerfile`, `scripts/release.sh`, `.github/workflows/` | how releases and the Docker image are built |
 
 ## License
 
