@@ -33,6 +33,8 @@ Option A (Custom Install) works on every ZimaOS and CasaOS version. Use it if yo
 
 ## Update
 
+**Restarting the app installs the newest version** automatically (tile → ⋮ → Restart, or restart ZimaOS). You can also update the image:
+
 The app tile → **⋮ → Check then update**. You can also go to App Store → Installed → SHELFCODE → **Update** (the app uses the `latest` image). Your data in `/DATA/AppData/shelfcode` is kept.
 
 ## Backups

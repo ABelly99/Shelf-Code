@@ -162,7 +162,7 @@ ok "settings: $CONF"
 
 # service
 if [ -f "$SRC/shelfcode.service" ]; then
-  sed "s|^ExecStart=.*|ExecStart=$BIN|" "$SRC/shelfcode.service" > "$UNIT"
+  sed -e "s|^ExecStart=.*|ExecStart=$BIN|" -e "s|^ExecStartPre=+-/usr/bin/shelfcode|ExecStartPre=+-$BIN|" "$SRC/shelfcode.service" > "$UNIT"
 else
   die "shelfcode.service missing from the release archive"
 fi

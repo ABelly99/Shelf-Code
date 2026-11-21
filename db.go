@@ -253,6 +253,7 @@ var defaultSettings = map[string]any{
 	"lan_enabled":       true,
 	"lan_pin":           "",
 	"onboarded":         false,
+	"auto_update":       true,
 	"last_print_job":    nil,
 	"last_backup_day":   "",
 }

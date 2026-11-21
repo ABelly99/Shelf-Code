@@ -247,11 +247,17 @@ export default async function ({ main, parts }) {
     body.append(section('SHELFCODE',
       h('dl', { class: 'kv' },
         h('dt', null, 'Version'), h('dd', null, info.version),
+        h('dt', null, 'Updates'), h('dd', null, info.update),
         h('dt', null, 'Data folder'), h('dd', { class: 'mono' }, info.data_dir),
         h('dt', null, 'Items'), h('dd', null, info.items),
         h('dt', null, 'Database size'), h('dd', null, (info.db_bytes / 1048576).toFixed(2) + ' MB'),
         h('dt', null, 'Running since'), h('dd', null, fmtDate(info.started_at, true))),
-      h('p', { class: 'muted small' }, 'Barcodes are drawn with bwip-js (MIT licence).')));
+      h('p', { class: 'muted small' }, 'Barcodes are drawn with bwip-js (MIT licence).')),
+      section('Automatic updates',
+        bool('auto_update', 'Install new versions automatically'),
+        h('p', { class: 'muted small' }, info.install === 'package'
+          ? 'Installed as a .deb/.rpm package: update with apt or dnf.'
+          : 'Each time SHELFCODE starts (or restarts), it checks GitHub for a newer release, checks the download, installs it and starts the new version. Your data is kept and backed up before any database change. To update now, restart SHELFCODE.')));
   }
   return {};
 }

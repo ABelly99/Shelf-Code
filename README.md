@@ -25,6 +25,7 @@ It is one program. Start it, and a simple window shows your addresses while the 
 - **Stock.** Sell, receive, quick-sell mode (each scan sells 1), stock count with a missing/extra report, and full history per item.
 - **Variants.** Turn one item into sizes × colours in one step, each with its own code.
 - **Import/Export:** CSV with column mapping and a dry run, JSON export, and Excel-safe codes.
+- **Automatic updates.** Every time SHELFCODE starts or restarts, it installs the newest release from GitHub. The download is checked first, and if anything goes wrong the current version keeps running. You can turn this off in Settings → About.
 - **Safe data.** Automatic daily backups, a backup before every import or restore, one-click restore, a Trash with undo, and an activity log.
 - **Other devices.** Use it from any phone or tablet on your Wi-Fi, with an optional PIN.
 - **Reports, dark mode and keyboard shortcuts.**
@@ -53,6 +54,8 @@ Then open `http://<that-machine>:8765` in a browser.
 3. Pick what you sell (Clothing, Phones, …) and add your first item with **+ New item**.
 
 Keep the black window open while you use SHELFCODE. Closing it stops the app. Starting it again while it is already running just opens your browser.
+
+**Updates:** each time you start SHELFCODE, it checks for a new version and installs it by itself. Your data stays where it is.
 
 On first start, Windows may ask two things:
 - **"Windows protected your PC":** click *More info → Run anyway*. The program is not code-signed.

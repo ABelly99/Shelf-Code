@@ -43,6 +43,8 @@ docker compose up -d
 
 ## Update
 
+Restarting the container installs the newest release automatically (`docker restart shelfcode`). The new program is kept in the data volume (`/data/.app`), so it survives restarts. Turn this off with `SHELFCODE_AUTO_UPDATE=0`. To update the image itself:
+
 ```bash
 docker compose pull && docker compose up -d
 ```

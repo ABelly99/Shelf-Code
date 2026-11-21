@@ -52,6 +52,8 @@ func main() {
 			return
 		case "healthcheck":
 			os.Exit(healthcheck())
+		case "self-update":
+			os.Exit(selfUpdateCommand())
 		}
 	}
 	defPort, _ := strconv.Atoi(envOr("SHELFCODE_PORT", "8765"))
@@ -111,6 +113,9 @@ func main() {
 
 	if err := ensureDirs(); err != nil {
 		fatal("Can't create the data folder " + dataDir + ": " + err.Error())
+	}
+	if !firstRun {
+		startupUpdate() // may hand over to a newer version and not return
 	}
 	if err := openDB(); err != nil {
 		fatal("Can't open the database: " + err.Error())

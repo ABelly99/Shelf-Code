@@ -303,6 +303,8 @@ func handleInfo(w http.ResponseWriter, r *http.Request) {
 		"urls":        serverURLs(),
 		"local":       trusted(r),
 		"server_mode": serverMode,
+		"update":      getUpdateStatus(),
+		"install":     installMode(),
 		"started_at":  startedAt.Format(time.RFC3339),
 	})
 }

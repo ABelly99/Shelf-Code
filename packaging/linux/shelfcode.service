@@ -12,10 +12,14 @@ Environment=SHELFCODE_DATA=/var/lib/shelfcode
 Environment=SHELFCODE_HEADLESS=1
 # Settings (port, PIN, …) live here; they override the lines above.
 EnvironmentFile=-/etc/shelfcode/shelfcode.env
+# Before each start: install a newer release if there is one (runs as root; skipped for
+# .deb/.rpm installs and when SHELFCODE_AUTO_UPDATE=0). Never blocks the start.
+ExecStartPre=+-/usr/bin/shelfcode self-update
 ExecStart=/usr/bin/shelfcode
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=20
+TimeoutStartSec=300
 
 # Data folder /var/lib/shelfcode, created and owned by the service user.
 StateDirectory=shelfcode

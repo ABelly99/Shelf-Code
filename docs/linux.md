@@ -63,6 +63,16 @@ cd shelfcode-linux-amd64 && sudo ./install.sh
 
 The script uses the program next to it instead of downloading. Or skip the installer and run the program directly: `./shelfcode --headless --data /srv/shelfcode`.
 
+## Updates
+
+With the installer (option 1 or 4), **every restart installs the newest release**:
+
+```bash
+sudo systemctl restart shelfcode
+```
+
+Before each start, the service runs `shelfcode self-update` as root. It checks GitHub, verifies the download's SHA-256, and replaces `/usr/local/bin/shelfcode` if there is a newer version. If the check fails (no internet, GitHub down), SHELFCODE starts the version it has. To turn this off, set `SHELFCODE_AUTO_UPDATE=0` in `/etc/shelfcode/shelfcode.env`, or untick it in Settings → About. `.deb`/`.rpm` installs are never touched; update those with apt/dnf.
+
 ## Everyday commands
 
 ```bash
