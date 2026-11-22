@@ -167,32 +167,71 @@ export default async function ({ main, query }) {
 
   // Blank codes: unique random codes printed now and given to items later (scan one → new item).
   async function addBlank() {
-    const count = h('input', { type: 'number', min: 1, max: 1000, value: 30, style: { width: '110px' }, autofocus: true });
-    const copies = h('input', { type: 'number', min: 1, max: 20, value: 1, style: { width: '110px' } });
+    const defLabel = app.labels.find(l => l.name.startsWith('Small'))?.id ?? defaultLabelFor(null)?.id;
     const fmt = formatSelect(app.settings.default_format || 'code128');
-    const lsel = h('select', null, labelOptions(app.labels.find(l => l.name.startsWith('Small'))?.id ?? defaultLabelFor(null)?.id));
+    const rowsBox = h('div', { class: 'col', style: { gap: '6px' } });
+    const summary = h('div', { class: 'small', style: { fontWeight: 600 } });
     const err = h('div', { class: 'danger-text small' });
+    const rows = [];
+
+    const update = () => {
+      const codes = rows.reduce((a, r) => a + (Number(r.codes.value) || 0), 0);
+      const labels = rows.reduce((a, r) => a + (Number(r.codes.value) || 0) * (Number(r.copies.value) || 0), 0);
+      summary.textContent = `${codes} new code${codes === 1 ? '' : 's'} · ${labels} label${labels === 1 ? '' : 's'}`;
+    };
+    const addRow = (codes = 1, copies = 1, label = defLabel) => {
+      const r = {};
+      r.codes = h('input', { type: 'number', min: 1, max: 1000, value: codes, style: { width: '72px' }, oninput: update, 'aria-label': 'How many codes' });
+      r.copies = h('input', { type: 'number', min: 1, max: 500, value: copies, style: { width: '72px' }, oninput: update, 'aria-label': 'Copies of each' });
+      r.label = h('select', { style: { maxWidth: '180px' }, 'aria-label': 'Label design' }, labelOptions(label));
+      r.el = h('div', { class: 'row nowrap', style: { gap: '6px' } },
+        r.codes, h('span', { class: 'muted small nowrap' }, 'code(s) ×'), r.copies, h('span', { class: 'muted small nowrap' }, 'copies'), r.label,
+        h('button', { class: 'btn small ghost', type: 'button', 'aria-label': 'Remove row', onclick: () => { if (rows.length > 1) { rows.splice(rows.indexOf(r), 1); r.el.remove(); update(); } } }, '×'));
+      rows.push(r);
+      rowsBox.appendChild(r.el);
+      update();
+      return r;
+    };
+    addRow();
+
+    // Quick entry: "2, 6, 12, 1" → four different codes printed 2, 6, 12 and 1 times.
+    const quick = h('input', { type: 'text', placeholder: 'e.g. 2, 6, 12, 1', style: { width: '100%' }, autofocus: true,
+      oninput: () => {
+        const nums = quick.value.split(/[\s,;x×]+/).map(Number).filter(n => Number.isInteger(n) && n > 0);
+        if (!nums.length) return;
+        rows.splice(0).forEach(r => r.el.remove());
+        nums.forEach(n => addRow(1, n));
+      } });
+
     const r = await dialog({
-      title: 'Print blank codes',
-      body: h('div', { class: 'col' },
-        h('p', { class: 'muted small' }, 'Makes new random codes that no item uses yet. Stick them on things now; later, scan one and SHELFCODE opens a new item with that code filled in (or lets you attach it to an existing item).'),
-        h('div', { class: 'grid2' },
-          h('div', { class: 'field' }, h('label', null, 'How many codes'), count),
-          h('div', { class: 'field' }, h('label', null, 'Copies of each'), copies),
-          h('div', { class: 'field' }, h('label', null, 'Label design'), lsel),
-          h('div', { class: 'field' }, h('label', null, 'Barcode format'), fmt)),
+      title: 'Print blank codes', wide: true,
+      body: h('div', { class: 'col', style: { gap: '12px' } },
+        h('p', { class: 'muted small', style: { margin: 0 } }, 'New random codes that no item uses yet. Stick them on things now; later, scan one and SHELFCODE opens a new item with that code (or attaches it to an existing item).'),
+        h('div', { class: 'field' }, h('label', null, 'Quick: copies for each new code, separated by commas'), quick,
+          h('div', { class: 'help' }, '“2, 6, 12, 1” = one code printed 2 times, another 6 times, another 12 times, another once.')),
+        h('div', { class: 'field' }, h('label', null, 'Or build it row by row'), rowsBox,
+          h('div', null, h('button', { class: 'btn small', type: 'button', onclick: () => { const last = rows[rows.length - 1]; addRow(1, 1, last ? Number(last.label.value) : defLabel).codes.focus(); } }, '+ Add row'))),
+        h('div', { class: 'row' }, h('label', { class: 'row nowrap' }, 'Barcode format ', fmt), h('span', { class: 'spacer' }), summary),
         err),
       actions: [{ label: 'Add to print list', primary: true, onClick: async () => {
-        const n = Math.round(Number(count.value));
-        if (!(n >= 1 && n <= 1000)) { err.textContent = 'Choose between 1 and 1000.'; return false; }
-        try { return await api.post('/api/codes/reserve', { count: n, format: fmt.value }); }
-        catch (e) { err.textContent = e.message; return false; }
+        const groups = rows.map(r => ({ codes: Math.round(Number(r.codes.value)), copies: Math.round(Number(r.copies.value)), label: Number(r.label.value) }));
+        if (groups.some(g => !(g.codes >= 1) || !(g.copies >= 1))) { err.textContent = 'Every row needs at least 1 code and 1 copy.'; return false; }
+        const total = groups.reduce((a, g) => a + g.codes, 0);
+        if (total > 1000) { err.textContent = 'At most 1000 new codes at once.'; return false; }
+        try {
+          const res = await api.post('/api/codes/reserve', { count: total, format: fmt.value });
+          let i = 0;
+          for (const g of groups) {
+            st.lines.push({ id: nextId(), batch: res.codes.slice(i, i + g.codes), format: res.format, label_id: g.label, qty: g.copies });
+            i += g.codes;
+          }
+          return { codes: total };
+        } catch (e) { err.textContent = e.message; return false; }
       } }],
     });
     if (!r?.codes) return;
-    st.lines.push({ id: nextId(), batch: r.codes, format: r.format, label_id: Number(lsel.value), qty: Math.max(1, Math.round(Number(copies.value)) || 1) });
     changed(true);
-    toast(`${r.codes.length} new blank codes added. They are saved, so they stay unique even if you don't print them now.`);
+    toast(`${r.codes} new blank code${r.codes === 1 ? '' : 's'} added. They're saved, so they stay unique even if you don't print them now.`);
   }
 
   const labelOptions = (selected) => app.labels.map(l => h('option', { value: l.id, selected: l.id === selected }, `${l.name}`));
@@ -217,7 +256,7 @@ export default async function ({ main, query }) {
           Object.entries(FORMATS).map(([k, f]) => h('option', { value: k, selected: l.format === k }, f.label)));
         return h('tr', { class: 'stack' },
           l.batch ? h('td', { class: 'wrap' },
-            h('div', null, h('strong', null, `${l.batch.length} blank codes`), h('span', { class: 'muted small' }, ' (not assigned yet)')),
+            h('div', null, h('strong', null, l.batch.length === 1 ? 'Blank code' : `${l.batch.length} blank codes`), h('span', { class: 'muted small' }, l.batch.length === 1 ? ' (not assigned yet)' : ` × ${l.qty} copies each`)),
             h('div', { class: 'mono small muted' }, l.batch.length > 1 ? `${l.batch[0]} … ${l.batch[l.batch.length - 1]}` : l.batch[0]))
           : h('td', { class: 'wrap' },
             h('div', null, it ? h('a', { href: `#/item/${it.id}` }, it.name) : h('span', { class: 'muted' }, l.text || '(code only)')),
